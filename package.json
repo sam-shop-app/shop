@@ -1,0 +1,18 @@
+{
+  "name": "sam-app",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Sam's Flash Sale Supermarket Shopping Website",
+  "type": "module",
+  "scripts": {
+    "dev:web": "pnpm -C web vite",
+    "dev:dashboard": "pnpm -C dashboard dev",
+    "dev:api": "pnpm -C api dev",
+    "dev": "concurrently \"pnpm dev:api\" \"pnpm dev:dashboard\" --names \"API,Dashboard\" --prefix-colors \"blue,green\"",
+    "build:dashboard": "pnpm -C dashboard build",
+    "start:dashboard": "pnpm -C dashboard start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

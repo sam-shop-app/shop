@@ -1,0 +1,65 @@
+# Docker Compose 配置文件
+# 用于启动 API 服务和 MySQL 数据库，并将它们置于同一网络中
+
+# 定义服务
+services:
+  # API 服务配置
+  sam-app-api:
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+    image: sam-app-api
+    container_name: sam-app-api
+    # 暴露 3000 端口到宿主机
+    ports:
+      - "13100:3100"
+    # 环境变量配置
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=mysql://root:hotdogc1017@mysql:3306/sam_app_db
+    # 卷挂载，将整个项目挂载到容器的 /app 目录以支持热更新
+    volumes:
+      - ..:/app
+      - /app/node_modules
+    # 依赖于 MySQL 服务，确保 MySQL 先启动
+    depends_on:
+      - sam-app-mysql
+    # 连接到 sam-app-network 网络
+    networks:
+      - sam-app-network
+    # 除非手动停止，否则容器会自动重启
+    restart: unless-stopped
+    # 设置工作目录，以便 pnpm 命令能正确执行
+    working_dir: /app/api
+    # 启动命令：使用 pnpm filter 运行指定包的开发脚本
+    command: node dist/index.js
+
+  # MySQL 数据库服务
+  sam-app-mysql:
+    image: mysql:8.0
+    container_name: sam-app-mysql
+    ports:
+      - "13306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=hotdogc1017
+      - MYSQL_DATABASE=sam_app_db
+    # 数据卷挂载，用于持久化 MySQL 数据和初始化脚本
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    # 连接到 sam-app-network 网络
+    networks:
+      - sam-app-network
+    # 除非手动停止，否则容器会自动重启
+    restart: unless-stopped
+    # MySQL 启动命令，设置默认认证插件
+    command: --default-authentication-plugin=mysql_native_password
+
+# 定义网络
+networks:
+  sam-app-network:
+    name: sam-app # 指定网络名称为 sam-app
+
+# 定义数据卷
+volumes:
+  mysql-data: # MySQL 数据持久化卷
