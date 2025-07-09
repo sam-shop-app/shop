@@ -16,6 +16,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { UploadCloud, File as FileIcon, X, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
+import { api } from "@/lib/api";
 
 interface PriceInfo {
   priceType: number;
@@ -68,17 +69,11 @@ export default function ImportProductPage() {
     
     try {
       const fileContent = await file.text();
-      const response = await fetch("http://localhost:13100/products/parse", {
+      const parsedProducts = await api("/products/parse", {
         method: "POST",
         body: fileContent,
         headers: { "Content-Type": "application/json" },
       });
-      
-      if (!response.ok) {
-        throw new Error(`解析HAR文件出错: ${response.statusText}`);
-      }
-      
-      const parsedProducts = await response.json();
       
       if (Array.isArray(parsedProducts)) {
         setProducts(parsedProducts.map(p => ({ ...p, selected: true })));
@@ -124,17 +119,10 @@ export default function ImportProductPage() {
     
     try {
       const productsToUpload = selectedProducts.map(({ selected, ...product }) => product);
-      const response = await fetch("http://localhost:3000/products/upsert", {
+      const result = await api("/products/upsert", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(productsToUpload),
+        body: productsToUpload,
       });
-      
-      if (!response.ok) {
-        throw new Error(`上传商品出错: ${response.statusText}`);
-      }
-      
-      const result = await response.json();
       
       if (result.success) {
         toast.success("上传成功", {
