@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { UploadCloud, File as FileIcon, X, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
 
 interface PriceInfo {
@@ -41,23 +41,10 @@ interface Product {
 
 export default function ImportProductPage() {
   const router = useRouter();
-  const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "错误",
-        description: error,
-      });
-      setError(null); 
-    }
-  }, [error, toast]);
   
   const selectedProductsCount = useMemo(() => products.filter(p => p.selected).length, [products]);
   const allSelected = useMemo(() => products.length > 0 && selectedProductsCount === products.length, [products, selectedProductsCount]);
@@ -67,13 +54,13 @@ export default function ImportProductPage() {
     if (selectedFile && selectedFile.name.endsWith('.har')) {
       setFile(selectedFile);
     } else {
-      setError("请选择一个有效的 .har 文件。");
+      toast.error("请选择一个有效的 .har 文件。");
     }
   };
 
   const handleParseHarFile = async () => {
     if (!file) {
-      setError("请先选择一个HAR文件。");
+      toast.error("请先选择一个HAR文件。");
       return;
     }
     
@@ -83,7 +70,6 @@ export default function ImportProductPage() {
       const fileContent = await file.text();
       const response = await fetch("http://localhost:13100/products/parse", {
         method: "POST",
-        mode: "cors",
         body: fileContent,
         headers: { "Content-Type": "application/json" },
       });
@@ -96,15 +82,16 @@ export default function ImportProductPage() {
       
       if (Array.isArray(parsedProducts)) {
         setProducts(parsedProducts.map(p => ({ ...p, selected: true })));
-        toast({
-          title: "解析成功",
+        toast.success("解析成功", {
           description: `已成功从文件中解析出 ${parsedProducts.length} 个商品。`,
         });
       } else {
         throw new Error("从API返回了无效的数据格式");
       }
     } catch (err) {
-      setError(`解析HAR文件失败: ${(err as Error).message}`);
+      toast.error("解析HAR文件失败", {
+        description: (err as Error).message,
+      });
     } finally {
       setLoading(false);
     }
@@ -129,7 +116,7 @@ export default function ImportProductPage() {
     const selectedProducts = products.filter(p => p.selected);
     
     if (selectedProducts.length === 0) {
-      setError("请至少选择一个商品以上传。");
+      toast.error("请至少选择一个商品以上传。");
       return;
     }
     
@@ -150,8 +137,7 @@ export default function ImportProductPage() {
       const result = await response.json();
       
       if (result.success) {
-        toast({
-          title: "上传成功",
+        toast.success("上传成功", {
           description: `已成功导入 ${selectedProducts.length} 个商品。`,
         });
         router.push("/products");
@@ -159,7 +145,9 @@ export default function ImportProductPage() {
         throw new Error(result.error || "上传商品失败");
       }
     } catch (err) {
-      setError(`上传商品失败: ${(err as Error).message}`);
+      toast.error("上传商品失败", {
+        description: (err as Error).message,
+      });
     } finally {
       setUploading(false);
     }
