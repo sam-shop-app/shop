@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, Input, Button, Link } from "@heroui/react";
+import { Card, Input, Button, Link, addToast } from "@heroui/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,7 +17,6 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const [error, setError] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const router = useRouter();
   const {
@@ -31,16 +30,24 @@ export default function LoginPage() {
   const toggleVisibility = () => setIsVisible(!isVisible);
 
   const onSubmit = async (data: LoginFormValues) => {
-    setError("");
     try {
       const { token } = await api<any>('/users/login', {
         method: 'POST',
         body: data,
       });
       localStorage.setItem("token", token);
+      addToast({
+        title: "登录成功",
+        description: "欢迎回来！",
+        color: "success",
+      });
       router.push("/");
     } catch (err: any) {
-      setError(err.message || "出现意外错误");
+      addToast({
+        title: "登录失败",
+        description: err.data?.error || "出现意外错误，请稍后重试。",
+        color: "danger",
+      });
     }
   };
 
@@ -89,7 +96,6 @@ export default function LoginPage() {
               }
               type={isVisible ? "text" : "password"}
             />
-            {error && <p className="text-sm text-red-600 text-center">{error}</p>}
             <Button
               type="submit"
               color="primary"

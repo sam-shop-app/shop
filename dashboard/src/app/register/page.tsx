@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, Input, Button, Link } from "@heroui/react";
+import { Card, Input, Button, Link, addToast } from "@heroui/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -24,7 +24,6 @@ const registerSchema = z
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
-  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [isConfirmVisible, setIsConfirmVisible] = useState(false);
@@ -42,7 +41,6 @@ export default function RegisterPage() {
   const toggleConfirmVisibility = () => setIsConfirmVisible(!isConfirmVisible);
 
   const onSubmit = async (data: RegisterFormValues) => {
-    setError("");
     setSuccess(false);
     try {
       await api('/users/register', {
@@ -54,11 +52,20 @@ export default function RegisterPage() {
         }
       });
       setSuccess(true);
+      addToast({
+        title: "注册成功",
+        description: "正在跳转到登录页面...",
+        color: "success",
+      });
       setTimeout(() => {
         router.push("/login");
       }, 2000);
     } catch (err: any) {
-      setError(err.message || "出现意外错误");
+      addToast({
+        title: "注册失败",
+        description: err.data?.error || "出现意外错误，请稍后重试。",
+        color: "danger",
+      });
     }
   };
 
@@ -146,9 +153,6 @@ export default function RegisterPage() {
                 }
                 type={isConfirmVisible ? "text" : "password"}
               />
-              {error && (
-                <p className="text-sm text-red-600 text-center">{error}</p>
-              )}
               <Button
                 type="submit"
                 color="primary"
