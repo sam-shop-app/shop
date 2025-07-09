@@ -1,26 +1,23 @@
 "use client";
 
+import { Suspense } from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
+import { 
+  Button, 
+  Input, 
+  Table, 
+  TableHeader, 
+  TableColumn, 
+  TableBody, 
+  TableRow, 
   TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
+  Image,
+  Chip,
+  Spinner
+} from "@heroui/react";
 import { toast } from 'sonner';
 import { PlusCircle, Search, FileUp, PackageOpen } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -38,18 +35,30 @@ interface Product {
 }
 
 const ProductSkeleton = () => (
-  <TableRow>
-    <TableCell colSpan={6} className="h-24 text-center">
-      <div className="animate-pulse">
-        <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
-      </div>
+  <>
+    <TableCell>
+      <div className="w-16 h-16 bg-gray-200 rounded-md animate-pulse"></div>
     </TableCell>
-  </TableRow>
+    <TableCell>
+      <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse mb-2"></div>
+      <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+    </TableCell>
+    <TableCell>
+      <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+    </TableCell>
+    <TableCell>
+      <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+    </TableCell>
+    <TableCell>
+      <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+    </TableCell>
+    <TableCell>
+      <div className="h-6 bg-gray-200 rounded-full w-20 animate-pulse"></div>
+    </TableCell>
+  </>
 );
 
-
-export default function ProductsPage() {
+function ProductsList() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -57,16 +66,16 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [total, setTotal] = useState(0);
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
-
+  
   const page = Number(searchParams.get('page')) || 1;
+  const searchTerm = searchParams.get('search') || '';
   const pageSize = 10;
 
   const createQueryString = useCallback(
     (params: Record<string, string | number | null>) => {
       const newSearchParams = new URLSearchParams(searchParams.toString());
       for (const [key, value] of Object.entries(params)) {
-        if (value === null) {
+        if (value === null || value === '') {
           newSearchParams.delete(key);
         } else {
           newSearchParams.set(key, String(value));
@@ -100,14 +109,17 @@ export default function ProductsPage() {
     };
 
     fetchProducts();
-  }, [page, searchTerm, createQueryString]);
+  }, [page, searchTerm]);
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const newSearchTerm = formData.get('search') as string;
-    setSearchTerm(newSearchTerm);
-    router.push(`${pathname}?${createQueryString({ search: newSearchTerm || null, page: 1 })}`);
+    router.push(`${pathname}?${createQueryString({ search: newSearchTerm, page: 1 })}`);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    router.push(`${pathname}?${createQueryString({ page: newPage })}`);
   };
 
   const totalPages = Math.ceil(total / pageSize);
@@ -116,139 +128,122 @@ export default function ProductsPage() {
     <div className="container mx-auto py-8 px-4">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">商品列表</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
+          <h1 className="text-2xl font-bold">商品列表</h1>
+          <p className="text-gray-500 mt-1">
             管理你的所有商品。
           </p>
         </div>
         <div className="flex items-center gap-2">
-            <Button asChild>
-                <Link href="/products/import">
-                    <FileUp className="mr-2 h-4 w-4" />
-                    导入商品
-                </Link>
+            <Button as={Link} href="/products/import" color="primary" startContent={<FileUp className="h-4 w-4" />}>
+                导入商品
             </Button>
         </div>
       </div>
       
       <div className="mb-4 flex items-center justify-between gap-4">
         <form onSubmit={handleSearch} className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
             <Input
+              isClearable
+              aria-label="Search"
               name="search"
-              type="search"
               placeholder="按商品标题搜索..."
               defaultValue={searchTerm}
-              className="pl-10"
+              startContent={<Search className="h-4 w-4 text-gray-500 pointer-events-none" />}
+              onClear={() => router.push(`${pathname}?${createQueryString({ search: null, page: 1 })}`)}
             />
-          </div>
         </form>
       </div>
 
-      <div className="rounded-lg border shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[80px]">图片</TableHead>
-              <TableHead>SPU / 店铺 ID</TableHead>
-              <TableHead>标题</TableHead>
-              <TableHead className="w-[100px]">价格</TableHead>
-              <TableHead className="w-[100px]">库存</TableHead>
-              <TableHead className="w-[120px]">状态</TableHead>
+      <Table aria-label="商品列表">
+        <TableHeader>
+          <TableColumn>图片</TableColumn>
+          <TableColumn>SPU / 店铺 ID</TableColumn>
+          <TableColumn>标题</TableColumn>
+          <TableColumn>价格</TableColumn>
+          <TableColumn>库存</TableColumn>
+          <TableColumn>状态</TableColumn>
+        </TableHeader>
+        <TableBody
+          isLoading={isLoading}
+          loadingContent={<Spinner label="加载中..." />}
+          emptyContent={
+            !isLoading && (
+              <div className="h-48 flex flex-col items-center justify-center text-center">
+                <PackageOpen className="w-12 h-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold">未找到商品</h3>
+                <p className="text-sm text-gray-500">
+                    似乎还没有任何商品，或者没有找到符合条件的商品。
+                </p>
+                <Button as={Link} href="/products/import" color="primary" variant="flat" className="mt-4">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    导入第一个商品
+                </Button>
+              </div>
+            )
+          }
+          items={products}
+        >
+          {(item) => (
+            <TableRow key={item.spu_id}>
+              <TableCell>
+                <Image
+                  as="img"
+                  src={item.image_url}
+                  alt={item.title || ''}
+                  width={64}
+                  height={64}
+                  className="w-16 h-16 object-cover rounded-md bg-gray-100"
+                  fallbackSrc={<PackageOpen className="w-8 h-8 text-gray-400" />}
+                />
+              </TableCell>
+              <TableCell>
+                <div className="font-mono text-xs">{item.spu_id}</div>
+                <div className="font-mono text-xs text-gray-500">{item.store_id}</div>
+              </TableCell>
+              <TableCell>
+                <div className="font-medium line-clamp-2">{item.title}</div>
+                <div className="text-xs text-gray-500 line-clamp-1">{item.sub_title}</div>
+              </TableCell>
+              <TableCell>¥{item.price || '0.00'}</TableCell>
+              <TableCell>{item.stock_quantity ?? 0}</TableCell>
+              <TableCell>
+                <Chip
+                  size="sm"
+                  variant="flat"
+                  color={item.is_available ? "success" : "danger"}
+                >
+                  {item.is_available ? '在售' : '下架'}
+                </Chip>
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => <ProductSkeleton key={i} />)
-            ) : products.length > 0 ? (
-              products.map((product) => (
-                <TableRow key={product.spu_id}>
-                  <TableCell>
-                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded overflow-hidden flex items-center justify-center">
-                      {product.image_url ? (
-                        <img src={product.image_url} alt={product.title || ''} className="object-cover w-full h-full" width={64} height={64} />
-                      ) : (
-                        <PackageOpen className="w-8 h-8 text-gray-400" />
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-mono text-xs">{product.spu_id}</div>
-                    <div className="font-mono text-xs text-gray-500">{product.store_id}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium line-clamp-2">{product.title}</div>
-                    <div className="text-xs text-gray-500 line-clamp-1">{product.sub_title}</div>
-                  </TableCell>
-                  <TableCell>¥{product.price || '0.00'}</TableCell>
-                  <TableCell>{product.stock_quantity ?? 0}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        product.is_available
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {product.is_available ? '在售' : '下架'}
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={6} className="h-48 text-center">
-                    <PackageOpen className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-semibold">未找到商品</h3>
-                    <p className="text-sm text-gray-500">
-                        似乎还没有任何商品，或者没有找到符合条件的商品。
-                    </p>
-                    <Button asChild className="mt-4">
-                        <Link href="/products/import">
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            导入第一个商品
-                        </Link>
-                    </Button>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
+          )}
+        </TableBody>
+      </Table>
+      
       {totalPages > 1 && (
-         <div className="flex items-center justify-end space-x-2 py-4">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                    <PaginationPrevious 
-                        href={`${pathname}?${createQueryString({ page: page > 1 ? page - 1 : 1 })}`}
-                        aria-disabled={page <= 1}
-                        tabIndex={page <= 1 ? -1 : undefined}
-                        className={page <= 1 ? "pointer-events-none opacity-50" : undefined}
-                    />
-                </PaginationItem>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                    <PaginationItem key={p}>
-                        <PaginationLink 
-                            href={`${pathname}?${createQueryString({ page: p })}`}
-                            isActive={page === p}
-                        >
-                            {p}
-                        </PaginationLink>
-                    </PaginationItem>
-                ))}
-                <PaginationItem>
-                    <PaginationNext 
-                        href={`${pathname}?${createQueryString({ page: page < totalPages ? page + 1 : totalPages })}`}
-                        aria-disabled={page >= totalPages}
-                        tabIndex={page >= totalPages ? -1 : undefined}
-                        className={page >= totalPages ? "pointer-events-none opacity-50" : undefined}
-                    />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+         <div className="flex items-center justify-center py-4">
+            <Pagination
+              showControls
+              total={totalPages}
+              page={page}
+              onChange={handlePageChange}
+            />
         </div>
       )}
     </div>
   );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center justify-center h-96">
+          <Spinner label="加载商品中..." />
+        </div>
+      </div>
+    }>
+      <ProductsList />
+    </Suspense>
+  )
 } 

@@ -1,65 +1,56 @@
+"use client";
+
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, ShoppingCart, Users } from "lucide-react";
+import { Card, CardBody, CardHeader, Button } from "@heroui/react";
+import { FileUp, List } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8 text-center">仪表盘</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">商品管理</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-50 dark:bg-gray-900">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
+          欢迎使用商品管理后台
+        </h1>
+        <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
+          一个现代化的后台，用于轻松管理您的商品目录。
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full">
+        <Card className="p-4">
+          <CardHeader className="flex items-center gap-4">
+            <div className="bg-primary/10 text-primary p-3 rounded-full">
+              <List className="h-6 w-6" />
+            </div>
+            <h2 className="text-xl font-semibold">商品列表</h2>
           </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground pt-2">
-              管理商品列表，导入和更新商品信息。
+          <CardBody>
+            <p className="text-gray-500 mb-4">
+              查看、搜索和管理您的所有商品。
             </p>
-          </CardContent>
-          <CardFooter>
-            <Link href="/products" className="w-full">
-              <Button className="w-full">进入</Button>
-            </Link>
-          </CardFooter>
+            <Button as={Link} href="/products" color="primary" variant="shadow">
+              查看商品
+            </Button>
+          </CardBody>
         </Card>
 
-        <Card className="opacity-60">
-           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">订单管理</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+        <Card className="p-4">
+          <CardHeader className="flex items-center gap-4">
+            <div className="bg-secondary/10 text-secondary p-3 rounded-full">
+              <FileUp className="h-6 w-6" />
+            </div>
+            <h2 className="text-xl font-semibold">导入商品</h2>
           </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground pt-2">
-              此模块正在开发中，即将推出。
+          <CardBody>
+            <p className="text-gray-500 mb-4">
+              通过上传 HAR 文件快速批量导入商品。
             </p>
-          </CardContent>
-          <CardFooter>
-            <Button disabled className="w-full">即将推出</Button>
-          </CardFooter>
+            <Button as={Link} href="/products/import" color="secondary" variant="shadow">
+              导入文件
+            </Button>
+          </CardBody>
         </Card>
-        
-        <Card className="opacity-60">
-           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">用户管理</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground pt-2">
-              此模块正在开发中，即将推出。
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button disabled className="w-full">即将推出</Button>
-          </CardFooter>
-        </Card>
-        </div>
-      
-      <footer className="mt-12 pt-6 border-t text-center text-sm text-gray-500">
-        <p>© 2024 商品管理后台. 保留所有权利。</p>
-      </footer>
-    </div>
+      </div>
+    </main>
   );
 }

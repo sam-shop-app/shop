@@ -2,22 +2,12 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button, Card, CardBody, CardFooter, CardHeader, Table, TableHeader, TableColumn, TableBody as HeroTableBody, TableRow, TableCell, Image } from "@heroui/react";
 import { toast } from "sonner";
-import { UploadCloud, File as FileIcon, X, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
+import { UploadCloud, File as FileIcon, X, ArrowRight, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
 
+// Interfaces...
 interface PriceInfo {
   priceType: number;
   price: string;
@@ -40,6 +30,7 @@ interface Product {
   selected?: boolean;
 }
 
+
 export default function ImportProductPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
@@ -48,7 +39,6 @@ export default function ImportProductPage() {
   const [uploading, setUploading] = useState(false);
   
   const selectedProductsCount = useMemo(() => products.filter(p => p.selected).length, [products]);
-  const allSelected = useMemo(() => products.length > 0 && selectedProductsCount === products.length, [products, selectedProductsCount]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -92,19 +82,8 @@ export default function ImportProductPage() {
     }
   };
 
-  const toggleProductSelection = (spuId: string, storeId: string) => {
-    setProducts(prev => 
-      prev.map(p => 
-        p.spuId === spuId && p.storeId === storeId
-          ? { ...p, selected: !p.selected }
-          : p
-      )
-    );
-  };
-  
-  const toggleSelectAll = () => {
-    const newSelectAllState = !allSelected;
-    setProducts(prev => prev.map(p => ({ ...p, selected: newSelectAllState })));
+  const toggleSelectAll = (isSelected: boolean) => {
+    setProducts(prev => prev.map(p => ({ ...p, selected: isSelected })));
   };
   
   const handleUploadProducts = async () => {
@@ -118,6 +97,7 @@ export default function ImportProductPage() {
     setUploading(true);
     
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const productsToUpload = selectedProducts.map(({ selected, ...product }) => product);
       const result = await api("/products/upsert", {
         method: "POST",
@@ -144,8 +124,8 @@ export default function ImportProductPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">导入新商品</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
+        <h1 className="text-2xl font-bold">导入新商品</h1>
+        <p className="text-gray-500 mt-1">
           上传 HAR 文件以批量解析和导入商品。
         </p>
       </div>
@@ -153,15 +133,15 @@ export default function ImportProductPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <Card className="shadow-md lg:col-span-1">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
               <span className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full text-sm">1</span>
               上传 HAR 文件
-            </CardTitle>
-            <CardDescription>在下方选择或拖放你的 .har 文件。</CardDescription>
+            </h3>
+            <p className="text-sm text-gray-500">在下方选择或拖放你的 .har 文件。</p>
           </CardHeader>
-          <CardContent>
+          <CardBody>
             <div
-              className="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-primary dark:hover:border-primary transition-colors"
+              className="relative border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
@@ -172,10 +152,10 @@ export default function ImportProductPage() {
               }}
             >
               <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              <p className="mt-2 text-sm text-gray-600">
                 拖拽文件或 <span className="font-semibold text-primary">浏览文件</span>
               </p>
-              <Input
+              <input
                 id="file-upload"
                 type="file"
                 accept=".har"
@@ -184,26 +164,27 @@ export default function ImportProductPage() {
               />
             </div>
             {file && (
-              <div className="mt-4 flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md">
+              <div className="mt-4 flex items-center justify-between bg-gray-50 p-3 rounded-md">
                 <div className="flex items-center gap-2">
                   <FileIcon className="w-5 h-5 text-gray-500" />
                   <span className="text-sm font-medium truncate">{file.name}</span>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setFile(null)}>
+                <Button isIconOnly variant="light" onPress={() => setFile(null)}>
                   <X className="w-4 h-4" />
                 </Button>
               </div>
             )}
-          </CardContent>
+          </CardBody>
           <CardFooter>
             <Button
-              onClick={handleParseHarFile}
-              disabled={!file || loading}
-              className="w-full"
+              color="primary"
+              onPress={handleParseHarFile}
+              isDisabled={!file || loading}
+              isLoading={loading}
+              fullWidth
+              endContent={!loading && <ArrowRight className="h-4 w-4" />}
             >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "正在解析..." : "解析并预览"}
-              {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
             </Button>
           </CardFooter>
         </Card>
@@ -212,50 +193,47 @@ export default function ImportProductPage() {
           {products.length > 0 && (
             <Card className="shadow-md">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full text-sm">2</span>
-                  预览并确认
-                </CardTitle>
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <span className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full text-sm">2</span>
+                    预览并确认
+                </h3>
                 <div className="flex justify-between items-center pt-2">
-                    <CardDescription>
+                    <p className="text-sm text-gray-500">
                       发现 {products.length} 个商品。请选择你想要导入的项。
-                    </CardDescription>
-                    <div className="flex items-center gap-2">
-                        <Checkbox 
-                            id="select-all" 
-                            checked={allSelected}
-                            onCheckedChange={toggleSelectAll}
-                        />
-                        <label htmlFor="select-all" className="text-sm font-medium">全选</label>
-                    </div>
+                    </p>
                 </div>
               </CardHeader>
-              <CardContent className="p-0">
-                <div className="border-t border-b overflow-hidden">
-                  <Table>
-                    <TableHeader className="bg-gray-50 dark:bg-gray-800/30">
-                      <TableRow>
-                        <TableHead className="w-12 text-center"><Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} /></TableHead>
-                        <TableHead className="w-20">图片</TableHead>
-                        <TableHead>SPU/店铺 ID</TableHead>
-                        <TableHead>标题</TableHead>
-                        <TableHead>价格</TableHead>
-                        <TableHead>库存</TableHead>
-                      </TableRow>
+              <CardBody className="p-0">
+                  <Table 
+                    aria-label="商品预览表"
+                    selectionMode="multiple"
+                    selectedKeys={products.filter(p => p.selected).map(p => `${p.spuId}-${p.storeId}`)}
+                    onSelectionChange={(keys) => {
+                        if (keys === 'all') {
+                            toggleSelectAll(true);
+                        } else {
+                            const selectedKeys = new Set(Array.from(keys).map(String));
+                            setProducts(prev => prev.map(p => ({
+                                ...p,
+                                selected: selectedKeys.has(`${p.spuId}-${p.storeId}`)
+                            })));
+                        }
+                    }}
+                  >
+                    <TableHeader>
+                      <TableColumn>图片</TableColumn>
+                      <TableColumn>SPU/店铺 ID</TableColumn>
+                      <TableColumn>标题</TableColumn>
+                      <TableColumn>价格</TableColumn>
+                      <TableColumn>库存</TableColumn>
                     </TableHeader>
-                    <TableBody>
+                    <HeroTableBody>
                       {products.map((product) => (
-                        <TableRow key={`${product.spuId}-${product.storeId}`} className={product.selected ? "bg-blue-50/50 dark:bg-blue-900/10" : ""}>
-                          <TableCell className="text-center">
-                            <Checkbox 
-                              checked={product.selected}
-                              onCheckedChange={() => toggleProductSelection(product.spuId, product.storeId)}
-                            />
-                          </TableCell>
+                        <TableRow key={`${product.spuId}-${product.storeId}`}>
                           <TableCell className="p-2">
-                            <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded overflow-hidden flex items-center justify-center">
+                            <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
                                 {product.image ? (
-                                    <img src={product.image} alt={product.title || ""} className="object-cover w-full h-full" width={48} height={48} />
+                                    <Image src={product.image} alt={product.title || ""} className="object-cover w-full h-full" width={48} height={48} />
                                 ) : (
                                     <FileIcon className="w-6 h-6 text-gray-400" />
                                 )}
@@ -267,31 +245,31 @@ export default function ImportProductPage() {
                           </TableCell>
                           <TableCell>
                             <div className="font-medium text-sm line-clamp-1">{product.title}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{product.subTitle}</div>
+                            <div className="text-xs text-gray-500 line-clamp-1">{product.subTitle}</div>
                           </TableCell>
                           <TableCell className="font-medium">¥{product.priceInfo?.[0]?.price || "0"}</TableCell>
                           <TableCell>{product.stockInfo?.stockQuantity || 0}</TableCell>
                         </TableRow>
                       ))}
-                    </TableBody>
+                    </HeroTableBody>
                   </Table>
-                </div>
-              </CardContent>
+              </CardBody>
               <CardFooter className="flex-col items-stretch gap-4 pt-6">
                  <div className="flex justify-between items-center text-sm">
                     <span className="font-medium">汇总</span>
-                    <span className="text-gray-500 dark:text-gray-400">
+                    <span className="text-gray-500">
                         已选择 <span className="font-bold text-primary">{selectedProductsCount}</span> / {products.length} 个商品
                     </span>
                  </div>
                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => router.push("/products")}>取消</Button>
+                    <Button variant="bordered" onPress={() => router.push("/products")}>取消</Button>
                     <Button 
-                      onClick={handleUploadProducts}
-                      disabled={uploading || selectedProductsCount === 0}
-                      className="min-w-[160px]"
+                      color="primary"
+                      onPress={handleUploadProducts}
+                      isDisabled={uploading || selectedProductsCount === 0}
+                      isLoading={uploading}
+                      startContent={!uploading && <CheckCircle2 className="h-4 w-4" />}
                     >
-                      {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
                       {uploading ? "正在导入..." : `导入 ${selectedProductsCount} 个商品`}
                     </Button>
                  </div>
