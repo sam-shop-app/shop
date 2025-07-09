@@ -16,10 +16,17 @@ import {
   Pagination,
   Image,
   Chip,
-  Spinner
+  Spinner,
+  Select,
+  SelectItem,
+  Checkbox,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem
 } from "@heroui/react";
 import { toast } from 'sonner';
-import { PlusCircle, Search, FileUp, PackageOpen } from 'lucide-react';
+import { PlusCircle, Search, FileUp, PackageOpen, Filter } from 'lucide-react';
 import { api } from '@/lib/api';
 
 interface Product {
@@ -69,13 +76,17 @@ function ProductsList() {
   
   const page = Number(searchParams.get('page')) || 1;
   const searchTerm = searchParams.get('search') || '';
+  const sortBy = searchParams.get('sortBy') || 'spu_id';
+  const sortOrder = searchParams.get('sortOrder') || 'asc';
+  const isAvailable = searchParams.get('isAvailable');
+  const isImport = searchParams.get('isImport');
   const pageSize = 10;
 
   const createQueryString = useCallback(
-    (params: Record<string, string | number | null>) => {
+    (params: Record<string, string | number | null | boolean>) => {
       const newSearchParams = new URLSearchParams(searchParams.toString());
       for (const [key, value] of Object.entries(params)) {
-        if (value === null || value === '') {
+        if (value === null || value === '' || value === false) {
           newSearchParams.delete(key);
         } else {
           newSearchParams.set(key, String(value));
@@ -95,6 +106,10 @@ function ProductsList() {
             page,
             pageSize,
             search: searchTerm || undefined,
+            sortBy,
+            sortOrder,
+            isAvailable: isAvailable ? isAvailable === 'true' : undefined,
+            isImport: isImport ? isImport === 'true' : undefined,
           }
         });
         setProducts(data.data);
@@ -109,7 +124,7 @@ function ProductsList() {
     };
 
     fetchProducts();
-  }, [page, searchTerm]);
+  }, [page, searchTerm, sortBy, sortOrder, isAvailable, isImport]);
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -122,6 +137,16 @@ function ProductsList() {
     router.push(`${pathname}?${createQueryString({ page: newPage })}`);
   };
 
+  const handleSortChange = (descriptor: { column: React.Key; direction: 'ascending' | 'descending' }) => {
+    const newSortBy = descriptor.column as string;
+    const newSortOrder = descriptor.direction === 'ascending' ? 'asc' : 'desc';
+    router.push(`${pathname}?${createQueryString({ sortBy: newSortBy, sortOrder: newSortOrder, page: 1 })}`);
+  };
+
+  const handleFilterChange = (key: string, value: boolean) => {
+    router.push(`${pathname}?${createQueryString({ [key]: value, page: 1 })}`);
+  }
+
   const totalPages = Math.ceil(total / pageSize);
 
   return (
@@ -130,7 +155,7 @@ function ProductsList() {
         <div>
           <h1 className="text-2xl font-bold">商品列表</h1>
           <p className="text-gray-500 mt-1">
-            管理你的所有商品。
+            共发现 {total} 件商品。
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -140,8 +165,8 @@ function ProductsList() {
         </div>
       </div>
       
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <form onSubmit={handleSearch} className="flex-1">
+      <div className="mb-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <form onSubmit={handleSearch} className="flex-1 w-full sm:w-auto">
             <Input
               isClearable
               aria-label="Search"
@@ -152,16 +177,44 @@ function ProductsList() {
               onClear={() => router.push(`${pathname}?${createQueryString({ search: null, page: 1 })}`)}
             />
         </form>
+        <div className="flex items-center gap-2">
+            <Dropdown>
+                <DropdownTrigger>
+                    <Button variant="bordered" endContent={<Filter className="h-4 w-4" />}>
+                        筛选
+                    </Button>
+                </DropdownTrigger>
+                <DropdownMenu aria-label="筛选选项" closeOnSelect={false}>
+                    <DropdownItem key="isAvailable" textValue="isAvailable">
+                        <Checkbox isSelected={isAvailable === 'true'} onValueChange={(checked) => handleFilterChange('isAvailable', checked)}>
+                            在售
+                        </Checkbox>
+                    </DropdownItem>
+                    <DropdownItem key="isImport" textValue="isImport">
+                        <Checkbox isSelected={isImport === 'true'} onValueChange={(checked) => handleFilterChange('isImport', checked)}>
+                            已导入
+                        </Checkbox>
+                    </DropdownItem>
+                </DropdownMenu>
+            </Dropdown>
+        </div>
       </div>
 
-      <Table aria-label="商品列表">
+      <Table 
+        aria-label="商品列表"
+        sortDescriptor={{
+            column: sortBy,
+            direction: sortOrder === 'asc' ? 'ascending' : 'descending'
+        }}
+        onSortChange={handleSortChange}
+      >
         <TableHeader>
-          <TableColumn>图片</TableColumn>
-          <TableColumn>SPU / 店铺 ID</TableColumn>
-          <TableColumn>标题</TableColumn>
-          <TableColumn>价格</TableColumn>
-          <TableColumn>库存</TableColumn>
-          <TableColumn>状态</TableColumn>
+          <TableColumn key="image_url">图片</TableColumn>
+          <TableColumn key="spu_id" allowsSorting>SPU / 店铺 ID</TableColumn>
+          <TableColumn key="title">标题</TableColumn>
+          <TableColumn key="price" allowsSorting>价格</TableColumn>
+          <TableColumn key="stock_quantity" allowsSorting>库存</TableColumn>
+          <TableColumn key="status">状态</TableColumn>
         </TableHeader>
         <TableBody
           isLoading={isLoading}
