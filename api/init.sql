@@ -36,7 +36,7 @@ CREATE TABLE `users` (
   `id` INT NOT NULL AUTO_INCREMENT COMMENT '自增ID，主键',
   `username` VARCHAR(50) NOT NULL COMMENT '用户名，用于登录，长度限制50个字符',
   `email` VARCHAR(100) NOT NULL COMMENT '用户邮箱，用于登录和接收通知，长度限制100个字符',
-  `password_hash` VARCHAR(255) NOT NULL COMMENT '加密后的用户密码哈希值',
+  `password` VARCHAR(255) NOT NULL COMMENT '用户密码',
   `full_name` VARCHAR(100) DEFAULT NULL COMMENT '用户真实姓名',
   `avatar_url` VARCHAR(512) DEFAULT NULL COMMENT '用户头像图片的链接',
   `phone_number` VARCHAR(20) DEFAULT NULL COMMENT '用户手机号码',

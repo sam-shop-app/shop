@@ -54,7 +54,7 @@ export interface User {
   role: "client" | "admin";
   status: number;
   created_at: string;
-  password_hash?: string;
+  password?: string;
 }
 
 export interface UserRegistration {

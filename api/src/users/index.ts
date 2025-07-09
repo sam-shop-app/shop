@@ -1,13 +1,13 @@
 import { Hono, type Next } from "hono";
-import { type Context } from "hono";
-import jwt from "jsonwebtoken";
+import type { Context } from "hono";
+import { sign } from "hono/jwt";
 import db, { getConnection } from "../utils/connection";
 import type { User, UserCredentials, UserRegistration } from "shared/src/types";
 import { authMiddleware } from "../middleware/auth";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
-// --- 业务逻辑函数 ---
+// --- Business Logic Functions ---
 
 export async function registerUser(userData: UserRegistration): Promise<{ id: number }> {
   const { username, email, password } = userData;
@@ -18,8 +18,8 @@ export async function registerUser(userData: UserRegistration): Promise<{ id: nu
   const connection = await getConnection();
   try {
     const [result] = await connection.execute(
-      "INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)",
-      [username, email, password, "admin"], // 默认为 admin
+      "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
+      [username, email, password, "admin"],
     ) as any;
     return { id: result.insertId };
   } finally {
@@ -45,12 +45,21 @@ export async function loginUser(credentials: UserCredentials): Promise<string> {
     }
 
     const user = rows[0];
+    const isPasswordValid = password === user.password;
 
-    const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
-      JWT_SECRET,
-      { expiresIn: "1h" },
-    );
+    if (!isPasswordValid) {
+      throw new Error("无效的用户名或密码");
+    }
+
+    const payload = {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      iat: Math.floor(Date.now() / 1000), // 签发时间
+      nbf: Math.floor(Date.now() / 1000), // 生效时间
+      exp: Math.floor(Date.now() / 1000) + (60 * 60), // 过期时间 (1 小时)
+    };
+    const token = await sign(payload, JWT_SECRET, "HS512");
     return token;
   } finally {
     connection.release();
@@ -85,7 +94,7 @@ export async function getUsers(options: {
   }
 }
 
-// --- Hono 路由 ---
+// --- Hono Routes ---
 
 const users = new Hono();
 
