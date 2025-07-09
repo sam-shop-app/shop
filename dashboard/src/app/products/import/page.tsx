@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { Button, Card, CardBody, CardFooter, CardHeader, Table, TableHeader, TableColumn, TableBody as HeroTableBody, TableRow, TableCell, Image } from "@heroui/react";
-import { toast } from "sonner";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { addToast, Button, Card, CardBody, CardFooter, CardHeader, Table, TableHeader, TableColumn, TableBody as HeroTableBody, TableRow, TableCell, Image } from "@heroui/react";
 import { UploadCloud, File as FileIcon, X, ArrowRight, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
+import { type Product as ProductType } from "shared/src/types";
 
 // Interfaces...
 interface PriceInfo {
@@ -33,52 +33,69 @@ interface Product {
 
 export default function ImportProductPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [file, setFile] = useState<File | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  
-  const selectedProductsCount = useMemo(() => products.filter(p => p.selected).length, [products]);
+  const [products, setProducts] = useState<(ProductType & { selected: boolean })[]>([]);
+  const [isParsing, setIsParsing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const selectedProducts = useMemo(() => products.filter(p => p.selected), [products]);
+  const selectedProductsCount = useMemo(() => selectedProducts.length, [selectedProducts]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.name.endsWith('.har')) {
       setFile(selectedFile);
+      addToast({
+        title: '文件已选择',
+        description: selectedFile.name,
+        color: "success",
+      });
     } else {
-      toast.error("请选择一个有效的 .har 文件。");
+      addToast({
+        title: '错误',
+        description: "请选择一个有效的 .har 文件。",
+        color: "danger",
+      });
     }
   };
 
   const handleParseHarFile = async () => {
     if (!file) {
-      toast.error("请先选择一个HAR文件。");
+      addToast({
+        title: '错误',
+        description: "请先选择一个HAR文件。",
+        color: "danger",
+      });
       return;
     }
-    
-    setLoading(true);
-    
+
+    setIsParsing(true);
     try {
-      const fileContent = await file.text();
-      const parsedProducts = await api("/products/parse", {
-        method: "POST",
-        body: fileContent,
-        headers: { "Content-Type": "application/json" },
+      const harContent = await file.text();
+      const parsedProducts: ProductType[] = await api('products/parse', {
+        method: 'POST',
+        body: harContent,
       });
-      
+
       if (Array.isArray(parsedProducts)) {
         setProducts(parsedProducts.map(p => ({ ...p, selected: true })));
-        toast.success("解析成功", {
+        addToast({
+          title: '成功',
           description: `已成功从文件中解析出 ${parsedProducts.length} 个商品。`,
+          color: "success",
         });
       } else {
         throw new Error("从API返回了无效的数据格式");
       }
     } catch (err) {
-      toast.error("解析HAR文件失败", {
+      addToast({
+        title: '错误',
         description: (err as Error).message,
+        color: "danger",
       });
     } finally {
-      setLoading(false);
+      setIsParsing(false);
     }
   };
 
@@ -86,38 +103,58 @@ export default function ImportProductPage() {
     setProducts(prev => prev.map(p => ({ ...p, selected: isSelected })));
   };
   
-  const handleUploadProducts = async () => {
-    const selectedProducts = products.filter(p => p.selected);
-    
-    if (selectedProducts.length === 0) {
-      toast.error("请至少选择一个商品以上传。");
-      return;
-    }
-    
-    setUploading(true);
-    
+  const handleUpload = async () => {
+    setIsUploading(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const productsToUpload = selectedProducts.map(({ selected, ...product }) => product);
-      const result = await api("/products/upsert", {
-        method: "POST",
-        body: productsToUpload,
+      if (selectedProducts.length === 0) {
+        addToast({
+          title: '错误',
+          description: "请至少选择一个商品以上传。",
+          color: "danger",
+        });
+        return;
+      }
+
+      const result: { success: boolean } = await api('products/upsert', {
+        method: 'POST',
+        body: JSON.stringify({
+          products: selectedProducts.map(({ selected, ...p }) => p)
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
-      
+
       if (result.success) {
-        toast.success("上传成功", {
+        addToast({
+          title: '成功',
           description: `已成功导入 ${selectedProducts.length} 个商品。`,
+          color: "success",
         });
         router.push("/products");
-      } else {
-        throw new Error(result.error || "上传商品失败");
       }
     } catch (err) {
-      toast.error("上传商品失败", {
+      addToast({
+        title: '错误',
         description: (err as Error).message,
+        color: "danger",
       });
     } finally {
-      setUploading(false);
+      setIsUploading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile) {
+      setFile(droppedFile);
+      addToast({
+        title: '文件已拖入',
+        description: droppedFile.name,
+        color: "success",
+      });
     }
   };
 
@@ -143,13 +180,7 @@ export default function ImportProductPage() {
             <div
               className="relative border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
               onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const droppedFile = e.dataTransfer.files[0];
-                if (droppedFile) {
-                  setFile(droppedFile);
-                }
-              }}
+              onDrop={handleDrop}
             >
               <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
               <p className="mt-2 text-sm text-gray-600">
@@ -179,12 +210,12 @@ export default function ImportProductPage() {
             <Button
               color="primary"
               onPress={handleParseHarFile}
-              isDisabled={!file || loading}
-              isLoading={loading}
+              isDisabled={!file || isParsing}
+              isLoading={isParsing}
               fullWidth
-              endContent={!loading && <ArrowRight className="h-4 w-4" />}
+              endContent={!isParsing && <ArrowRight className="h-4 w-4" />}
             >
-              {loading ? "正在解析..." : "解析并预览"}
+              {isParsing ? "正在解析..." : "解析并预览"}
             </Button>
           </CardFooter>
         </Card>
@@ -265,12 +296,12 @@ export default function ImportProductPage() {
                     <Button variant="bordered" onPress={() => router.push("/products")}>取消</Button>
                     <Button 
                       color="primary"
-                      onPress={handleUploadProducts}
-                      isDisabled={uploading || selectedProductsCount === 0}
-                      isLoading={uploading}
-                      startContent={!uploading && <CheckCircle2 className="h-4 w-4" />}
+                      onPress={handleUpload}
+                      isDisabled={isUploading || selectedProductsCount === 0}
+                      isLoading={isUploading}
+                      startContent={!isUploading && <CheckCircle2 className="h-4 w-4" />}
                     >
-                      {uploading ? "正在导入..." : `导入 ${selectedProductsCount} 个商品`}
+                      {isUploading ? "正在导入..." : `导入 ${selectedProductsCount} 个商品`}
                     </Button>
                  </div>
               </CardFooter>

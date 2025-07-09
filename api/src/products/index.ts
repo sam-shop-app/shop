@@ -1,5 +1,4 @@
 import { getConnection } from "../utils/connection";
-import { type Context } from "hono";
 import type { Har, Product } from "sam-shared";
 
 export function parseHarForProducts(harContent: string): Product[] {

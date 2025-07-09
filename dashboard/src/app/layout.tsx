@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import Link from "next/link";
 import "../globals.css";
 import { Package } from "lucide-react";
-import { Toaster } from 'sonner';
 import { Providers } from "./providers";
 
 const inter = Inter({
@@ -26,7 +25,7 @@ export default function RootLayout({
       <body className={`${inter.variable} antialiased`}>
         <Providers>
           <div className="min-h-screen flex flex-col">
-            <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+            <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <div className="container mx-auto h-14 flex items-center">
                 <Link href="/" className="flex items-center font-bold mr-6">
                   <Package className="h-6 w-6 mr-2" />
@@ -46,7 +45,6 @@ export default function RootLayout({
             <main className="flex-1">
               {children}
             </main>
-            <Toaster />
           </div>
         </Providers>
       </body>
