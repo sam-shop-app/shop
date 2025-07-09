@@ -2,7 +2,8 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import db from "./utils/connection";
-import { upsertProducts, parseHarForProducts, getProducts } from "./products";
+import products from "./products";
+import users from "./users";
 
 // 创建 Hono 应用实例
 const app = new Hono();
@@ -21,6 +22,24 @@ app.use(
 app.get("/", (c) => {
   return c.json({ status: "ok", message: "API is running" });
 });
+
+app.get("/stats", async (c) => {
+  try {
+    const productsCount: any = await db.query("SELECT COUNT(*) as count FROM products");
+    const usersCount: any = await db.query("SELECT COUNT(*) as count FROM users");
+
+    return c.json({
+      products: productsCount[0].count,
+      users: usersCount[0].count,
+    });
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.route("/users", users);
+app.route("/products", products);
 
 // 测试数据库连接端点
 app.get("/db-test", async (c) => {
@@ -47,66 +66,9 @@ app.get("/db-test", async (c) => {
   }
 });
 
-app.post("/products/upsert", async (c) => {
-  try {
-    const products = await c.req.json();
-    await upsertProducts(products);
-    return c.json({ success: true, message: "Products upserted successfully" });
-  } catch (error) {
-    console.error("Error upserting products:", error);
-    return c.json({ success: false, error: String(error) }, 500);
-  }
-});
-
-app.post("/products/parse", async (c) => {
-  try {
-    const harContent = await c.req.text();
-    const products = parseHarForProducts(harContent);
-    return c.json(products);
-  } catch (error) {
-    console.error("Error parsing HAR file:", error);
-    return c.json({ success: false, error: String(error) }, 500);
-  }
-});
-
-app.get("/products", async (c) => {
-  try {
-    const {
-      search,
-      sortBy,
-      sortOrder,
-      isImport,
-      isAvailable,
-      page,
-      pageSize,
-    } = c.req.query();
-    const result = await getProducts({
-      search,
-      sortBy,
-      sortOrder: sortOrder as "asc" | "desc",
-      isImport: isImport ? isImport === "true" : undefined,
-      isAvailable: isAvailable ? isAvailable === "true" : undefined,
-      page: page ? parseInt(page, 10) : undefined,
-      pageSize: pageSize ? parseInt(pageSize, 10) : undefined,
-    });
-    return c.json(result);
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    return c.json({ success: false, error: String(error) }, 500);
-  }
-});
-
 // 启动服务器
 async function startServer() {
   try {
-    // 测试数据库连接
-    // const connected = await db.testConnection();
-    // if (!connected) {
-    //   console.error("无法连接到 MySQL 数据库，程序退出...");
-    //   process.exit(1);
-    // }
-    // console.log("成功连接到 MySQL 数据库");
-
     // 启动服务器
     serve(
       {

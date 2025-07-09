@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { addToast, Button, Card, CardBody, CardFooter, CardHeader, Table, TableHeader, TableColumn, TableBody as HeroTableBody, TableRow, TableCell, Image } from "@heroui/react";
 import { UploadCloud, File as FileIcon, X, ArrowRight, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
-import { type Product as ProductType } from "shared/src/types";
+import { type Product as ProductType } from "sam-shared";
 
 // Interfaces...
 interface PriceInfo {

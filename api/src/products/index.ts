@@ -1,7 +1,9 @@
+import { Hono } from "hono";
 import { getConnection } from "../utils/connection";
-import type { Har, Product } from "sam-shared";
+import type { Har, Product } from "shared/src/types";
+import { authMiddleware } from "../middleware/auth";
 
-export function parseHarForProducts(harContent: string): Product[] {
+function parseHarForProducts(harContent: string): Product[] {
   const products: Product[] = [];
   const processedSpus = new Set<string>();
 
@@ -52,7 +54,7 @@ export function parseHarForProducts(harContent: string): Product[] {
   return products;
 }
 
-export async function upsertProducts(products: Product[]): Promise<void> {
+async function upsertProducts(products: Product[]): Promise<void> {
   if (products.length === 0) {
     console.log("没有要更新到数据库的商品。");
     return;
@@ -100,7 +102,7 @@ export async function upsertProducts(products: Product[]): Promise<void> {
   }
 }
 
-export async function getProducts(options: {
+async function getProducts(options: {
   search?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
@@ -178,3 +180,62 @@ export async function getProducts(options: {
     }
   }
 }
+
+// --- Hono 路由 ---
+
+const products = new Hono();
+
+products.use("*", authMiddleware); // 对所有商品路由启用认证
+
+products.post("/upsert", async (c) => {
+  try {
+    const products = await c.req.json();
+    await upsertProducts(products);
+    return c.json({ success: true, message: "商品更新或插入成功" });
+  } catch (error) {
+    console.error("更新或插入商品时出错:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+products.post("/parse", async (c) => {
+  try {
+    const harContent = await c.req.text();
+    const products = parseHarForProducts(harContent);
+    return c.json(products);
+  } catch (error) {
+    console.error("解析HAR文件时出错:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+products.get("/", async (c) => {
+  try {
+    const {
+      search,
+      sortBy,
+      sortOrder,
+      isImport,
+      isAvailable,
+      page,
+      pageSize,
+    } = c.req.query();
+    const result = await getProducts({
+      search,
+      sortBy,
+      sortOrder: sortOrder as "asc" | "desc",
+      isImport: isImport ? isImport === "true" : undefined,
+      isAvailable: isAvailable ? isAvailable === "true" : undefined,
+      page: page ? parseInt(page, 10) : undefined,
+      pageSize: pageSize ? parseInt(pageSize, 10) : undefined,
+    });
+    return c.json(result);
+  } catch (error) {
+    console.error("获取商品时出错:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+export default products;
+
+export { parseHarForProducts, upsertProducts, getProducts };

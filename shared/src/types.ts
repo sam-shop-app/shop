@@ -42,3 +42,28 @@ export interface Har {
     entries: HarEntry[];
   };
 }
+
+// 用户信息
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
+  phone_number?: string;
+  role: "client" | "admin";
+  status: number;
+  created_at: string;
+  password_hash?: string;
+}
+
+export interface UserRegistration {
+  username: string;
+  email: string;
+  password: string;
+}
+
+export interface UserCredentials {
+  username: string;
+  password: string;
+}

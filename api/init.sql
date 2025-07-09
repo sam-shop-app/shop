@@ -27,3 +27,33 @@ CREATE TABLE `products` (
 ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COMMENT='山姆商品信息表，用于存储从HAR文件解析的数据';
+
+-- 如果已存在名为 `users` 的表，则先删除，方便脚本重复执行
+DROP TABLE IF EXISTS `users`;
+
+-- 创建 `users` 表，并为每个字段添加注释
+CREATE TABLE `users` (
+  `id` INT NOT NULL AUTO_INCREMENT COMMENT '自增ID，主键',
+  `username` VARCHAR(50) NOT NULL COMMENT '用户名，用于登录，长度限制50个字符',
+  `email` VARCHAR(100) NOT NULL COMMENT '用户邮箱，用于登录和接收通知，长度限制100个字符',
+  `password_hash` VARCHAR(255) NOT NULL COMMENT '加密后的用户密码哈希值',
+  `full_name` VARCHAR(100) DEFAULT NULL COMMENT '用户真实姓名',
+  `avatar_url` VARCHAR(512) DEFAULT NULL COMMENT '用户头像图片的链接',
+  `phone_number` VARCHAR(20) DEFAULT NULL COMMENT '用户手机号码',
+  `role` VARCHAR(20) NOT NULL DEFAULT 'client' COMMENT '用户角色 (client: 客户端用户, admin: 后台用户)',
+  `status` TINYINT NOT NULL DEFAULT 1 COMMENT '用户状态 (1: 活跃, 0: 禁用, 2: 待验证)',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '行数据创建时间戳',
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '行数据更新时间戳，在更新时会自动刷新',
+
+  -- 设置 `id` 字段为主键
+  PRIMARY KEY (`id`),
+
+  -- 为 `username` 和 `email` 分别创建唯一索引，确保其唯一性，加速查询
+  UNIQUE KEY `uniq_username` (`username`),
+  UNIQUE KEY `uniq_email` (`email`)
+
+)
+-- 设置表的存储引擎和字符集，并添加表级别的注释
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COMMENT='用户信息表，存储用户的基本信息';
