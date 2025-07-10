@@ -73,7 +73,7 @@ export async function getUsers(options: {
   const { page = 1, pageSize = 10 } = options;
   const connection = await getConnection();
   try {
-    let sql = "SELECT id, username, email, role, created_at FROM users";
+    let sql = "SELECT id, username, email, role, created_at, status, avatar_url FROM users";
     const values = [];
 
     const offset = (page - 1) * pageSize;

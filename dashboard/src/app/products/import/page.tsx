@@ -117,9 +117,7 @@ export default function ImportProductPage() {
 
       const result: { success: boolean } = await api('products/upsert', {
         method: 'POST',
-        body: JSON.stringify({
-          products: selectedProducts.map(({ selected, ...p }) => p)
-        }),
+        body: JSON.stringify(selectedProducts.map(({ selected, ...p }) => p)),
         headers: {
           'Content-Type': 'application/json'
         }
