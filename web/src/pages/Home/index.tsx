@@ -145,7 +145,7 @@ const HomePage = () => {
   return (
     <div className="space-y-12">
       {/* Banner 轮播 */}
-      <section className="">
+      {/* <section className="">
         <Container>
           <Carousel className="w-full max-w-xs">
             <CarouselContent>
@@ -169,7 +169,7 @@ const HomePage = () => {
             <CarouselNext />
           </Carousel>
         </Container>
-      </section>
+      </section> */}
 
       {/* 分类导航 */}
       <section>
