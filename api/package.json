@@ -7,6 +7,10 @@
     "dev": "tsx watch src/index.ts",
     "build": "rolldown -c rolldown.config.ts"
   },
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts"
+  },
   "devDependencies": {
     "@types/node": "^20.11.17",
     "rolldown": "^1.0.0-beta.24",

@@ -9,7 +9,6 @@ RUN pnpm config set registry https://registry.npmmirror.com
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # 复制所有项目的 package.json，以便 pnpm 正确解析工作区
 COPY api/package.json ./api/
-COPY shared/package.json ./shared/
 # 安装所有依赖
 RUN pnpm install --frozen-lockfile
 
@@ -17,7 +16,6 @@ RUN pnpm install --frozen-lockfile
 COPY api/src ./api/src
 COPY api/rolldown.config.ts ./api/rolldown.config.ts
 COPY api/tsconfig.json ./api/
-COPY shared ./shared
 
 WORKDIR /app/api
 # 删除 dist 目录

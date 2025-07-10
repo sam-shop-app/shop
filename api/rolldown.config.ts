@@ -6,6 +6,11 @@ export default defineConfig({
     dir: 'dist',
     format: 'esm',
   },
+  resolve: {
+    alias: {
+      '@': './src',
+    },
+  },
   platform: 'node',
   // 如果有外部依赖，可以在这里声明
   external: ['mysql2'],

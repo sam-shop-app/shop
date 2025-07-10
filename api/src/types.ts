@@ -1,5 +1,3 @@
-// src/types.ts
-
 // API响应中单个商品的价格信息
 export interface PriceInfo {
   priceType: number;

@@ -1,4 +1,4 @@
 packages:
   - api
-  - shared
   - dashboard
+  - web

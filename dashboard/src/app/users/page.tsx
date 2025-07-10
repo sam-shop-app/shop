@@ -17,7 +17,7 @@ import {
 } from "@heroui/react";
 import { Edit, Trash2, Eye, Plus, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
-import { User } from "shared/src/types";
+import { User } from "sam-api/types";
 
 type UserData = {
   data: User[];

@@ -1,8 +1,7 @@
 import { Hono, type Next } from "hono";
-import type { Context } from "hono";
 import { sign } from "hono/jwt";
 import db, { getConnection } from "../utils/connection";
-import type { User, UserCredentials, UserRegistration } from "shared/src/types";
+import type { User, UserCredentials, UserRegistration } from "@/types";
 import { authMiddleware } from "../middleware/auth";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";

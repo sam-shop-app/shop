@@ -1,11 +1,11 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { addToast, Button, Card, CardBody, CardFooter, CardHeader, Table, TableHeader, TableColumn, TableBody as HeroTableBody, TableRow, TableCell, Image } from "@heroui/react";
 import { UploadCloud, File as FileIcon, X, ArrowRight, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
-import { type Product as ProductType } from "sam-shared";
+import { type Product as ProductType } from "sam-api/types";
 
 // Interfaces...
 interface PriceInfo {

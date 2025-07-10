@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { getConnection } from "../utils/connection";
-import type { Har, Product } from "shared/src/types";
+import type { Har, Product } from "@/types";
 import { authMiddleware } from "../middleware/auth";
 
 function parseHarForProducts(harContent: string): Product[] {
