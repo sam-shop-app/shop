@@ -57,3 +57,58 @@ CREATE TABLE `users` (
 ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COMMENT='用户信息表，存储用户的基本信息';
+
+-- 山姆商品分类体系表
+DROP TABLE IF EXISTS `product_categories`;
+CREATE TABLE `product_categories` (
+  `id` VARCHAR(50) NOT NULL COMMENT '分类ID (groupingId)',
+  `parent_id` VARCHAR(50) DEFAULT NULL COMMENT '父分类ID，一级分类的此字段为NULL',
+  `name` VARCHAR(255) NOT NULL COMMENT '分类名称 (title)',
+  `level` INT NOT NULL COMMENT '分类层级',
+  `image_url` VARCHAR(512) DEFAULT NULL,
+  `sort_order` INT DEFAULT 0 COMMENT '排序值，根据在数组中的位置生成',
+  PRIMARY KEY (`id`),
+  INDEX `idx_parent_id` (`parent_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品分类信息表';
+
+-- 商品分类数据 (插入或更新)
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('156048', NULL, '乳品烘焙', 1, 'https://img.samsclub.cn/pc/sams/upload/20220905/1662364273891.png', 0) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('34112', NULL, '休闲零食', 1, 'https://img.samsclub.cn/pc/sams/upload/20220905/1662364234033.png', 1) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('156049', NULL, '酒水饮料', 1, 'https://img.samsclub.cn/pc/sams/upload/20220905/1662364264627.png', 2) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('156050', NULL, '冷藏冻品', 1, 'https://img.samsclub.cn/pc/sams/upload/20220905/1662364283186.png', 3) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('156051', NULL, '时令生鲜', 1, 'https://img.samsclub.cn/pc/sams/upload/20220905/1662364292150.png', 4) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('202000', '156050', '为您推荐', 2, NULL, 0) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('275049', '156050', '新品上市', 2, NULL, 1) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('157072', '156050', '冰淇淋', 2, NULL, 2) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('156056', '156050', '快手菜', 2, NULL, 3) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('336016', '156050', '速食肉制品', 2, NULL, 4) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('333021', '156050', '香肠/火腿', 2, NULL, 5) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('181217', '156050', '熟食/餐吧', 2, NULL, 6) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('156055', '156050', '佐餐速食', 2, NULL, 7) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('158056', '156050', '火锅丸滑', 2, NULL, 8) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('181400', '156050', '冷冻面点', 2, NULL, 9) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('158069', '156050', '冷冻果蔬', 2, NULL, 10) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('155052', '156050', '冷冻肉禽', 2, NULL, 11) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('158057', '156050', '冷冻水产', 2, NULL, 12) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('276048', '275049', '新品上市', 3, NULL, 0) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('158066', '157072', '冰淇淋', 3, NULL, 0) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('180355', '156056', '快手菜', 3, NULL, 0) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('333022', '336016', '烤物', 3, NULL, 0) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('335020', '336016', '炸物', 3, NULL, 1) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('334016', '336016', '汉堡/三明治', 3, NULL, 2) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('335019', '333021', '香肠', 3, NULL, 0) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('334015', '333021', '火腿', 3, NULL, 1) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('264006', '181217', '预制调理菜', 3, NULL, 0) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('180173', '181217', '爆款熟食', 3, NULL, 1) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('181257', '181217', '轻食沙拉', 3, NULL, 2) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('156066', '156055', '佐餐小菜', 3, NULL, 0) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('157079', '158056', '火锅丸滑', 3, NULL, 0) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('208028', '181400', '饺子/馄饨', 3, NULL, 0) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('183415', '181400', '面点/小吃', 3, NULL, 1) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('157082', '158069', '速冻果蔬', 3, NULL, 0) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('155062', '155052', '牛/羊肉', 3, NULL, 0) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('156064', '155052', '禽类', 3, NULL, 1) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('158067', '158057', '鱼类', 3, NULL, 0) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('157081', '158057', '虾', 3, NULL, 1) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('156065', '158057', '蟹/贝/海参', 3, NULL, 2) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
+INSERT INTO product_categories (id, parent_id, name, level, image_url, sort_order) VALUES ('155061', '158057', '其他海鲜', 3, NULL, 3) ON DUPLICATE KEY UPDATE name=VALUES(name), level=VALUES(level), image_url=VALUES(image_url), sort_order=VALUES(sort_order);
