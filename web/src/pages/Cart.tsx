@@ -73,7 +73,7 @@ export default function Cart() {
                   alt={item.name}
                   className="w-24 h-24 object-cover rounded-lg"
                 />
-                <div className="flex-grow">
+                <div className="grow">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-semibold">{item.name}</h3>

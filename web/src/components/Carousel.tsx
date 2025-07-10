@@ -26,7 +26,7 @@ interface CarouselItemProps extends PropsWithChildren {
 
 const CarouselItem: FC<CarouselItemProps> = ({ children, className }) => {
   return (
-    <SwiperSlide className={clsx("w-full flex-shrink-0", className)}>
+    <SwiperSlide className={clsx("w-full shrink-0", className)}>
       {children}
     </SwiperSlide>
   );

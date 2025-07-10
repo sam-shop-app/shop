@@ -116,7 +116,7 @@ export default function Profile() {
             alt={profile.name}
             className="w-24 h-24"
           />
-          <div className="flex-grow text-center md:text-left">
+          <div className="grow text-center md:text-left">
             <div className="flex flex-col md:flex-row items-center gap-2 mb-2">
               <h1 className="text-2xl font-bold">{profile.name}</h1>
               <Badge color={UserLevelColors[profile.level] as any}>

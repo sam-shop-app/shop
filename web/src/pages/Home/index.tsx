@@ -155,9 +155,9 @@ const HomePage = () => {
                     <Image
                       src={banner.image}
                       alt={banner.title}
-                      className="w-full aspect-[21/9] object-cover rounded-lg"
+                      className="w-full aspect-21/9 object-cover rounded-lg"
                     />
-                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent text-white">
+                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-linear-to-t from-black/60 to-transparent text-white">
                       <h2 className="text-2xl font-bold">{banner.title}</h2>
                       <p className="mt-2">{banner.description}</p>
                     </div>

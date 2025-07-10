@@ -10,7 +10,7 @@ const Layout = () => {
       <Navbar />
 
       {/* Main Content */}
-      <main className="flex-grow">
+      <main className="grow">
         <div className="py-8">
           <Outlet />
         </div>

@@ -292,7 +292,7 @@ export default function Checkout() {
                       alt={item.name}
                       className="w-20 h-20 object-cover rounded"
                     />
-                    <div className="flex-grow">
+                    <div className="grow">
                       <h3 className="font-semibold">{item.name}</h3>
                       <p className="text-default-500">
                         {item.selectedSize && `尺码: ${item.selectedSize}`}

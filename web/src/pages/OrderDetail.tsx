@@ -171,7 +171,7 @@ export default function OrderDetail() {
                       alt={item.name}
                       className="w-24 h-24 object-cover rounded"
                     />
-                    <div className="flex-grow">
+                    <div className="grow">
                       <div className="flex justify-between">
                         <div>
                           <h3 className="font-semibold">{item.name}</h3>
@@ -207,7 +207,7 @@ export default function OrderDetail() {
                         <div className="h-full w-0.5 bg-default-200"></div>
                       )}
                     </div>
-                    <div className="flex-grow pb-4">
+                    <div className="grow pb-4">
                       <p className="font-semibold">{event.description}</p>
                       <p className="text-default-500 text-sm">
                         {formatDateTime(event.timestamp)}
