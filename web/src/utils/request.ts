@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 // 创建axios实例
 const request: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: 'http://localhost:13100',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
@@ -20,55 +20,6 @@ request.interceptors.request.use(
     return config;
   },
   (error: AxiosError) => {
-    return Promise.reject(error);
-  }
-);
-
-// 响应拦截器
-request.interceptors.response.use(
-  (response: AxiosResponse) => {
-    const { data } = response;
-
-    // 这里可以根据实际后端接口返回格式进行调整
-    if (data.code === 0) {
-      return data.data;
-    }
-
-    // 处理业务错误
-    const error = new Error(data.message || '请求失败') as AxiosError;
-    error.response = response;
-    return Promise.reject(error);
-  },
-  (error: AxiosError) => {
-    const { response } = error;
-
-    // 处理 401 未授权错误
-    if (response?.status === 401) {
-      useAuth.getState().logout();
-      window.location.href = '/login';
-      return Promise.reject(new Error('请先登录'));
-    }
-
-    // 处理 403 禁止访问错误
-    if (response?.status === 403) {
-      return Promise.reject(new Error('没有权限访问'));
-    }
-
-    // 处理 404 不存在错误
-    if (response?.status === 404) {
-      return Promise.reject(new Error('请求的资源不存在'));
-    }
-
-    // 处理 500 服务器错误
-    if (response?.status === 500) {
-      return Promise.reject(new Error('服务器错误，请稍后重试'));
-    }
-
-    // 处理网络错误
-    if (!window.navigator.onLine) {
-      return Promise.reject(new Error('网络连接已断开，请检查网络'));
-    }
-
     return Promise.reject(error);
   }
 );
@@ -138,7 +89,7 @@ export const download = async (url: string, filename: string): Promise<void> => 
       responseType: 'blob',
     });
 
-    const blob = new Blob([response]);
+    const blob = new Blob([response.data]);
     const downloadUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = downloadUrl;

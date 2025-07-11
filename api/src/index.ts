@@ -5,6 +5,8 @@ import db from "./utils/connection";
 import products from "./products";
 import users from "./users";
 import categories from "./categories";
+import home from "./home";
+import { getConnection } from "./utils/connection";
 
 // 创建 Hono 应用实例
 const app = new Hono();
@@ -13,7 +15,7 @@ const app = new Hono();
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:3001", "http://localhost:3000"],
+    origin: ["http://localhost:3001", "http://localhost:3000", "http://localhost:3200"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
   }),
@@ -25,6 +27,7 @@ app.get("/", (c) => {
 });
 
 app.get("/stats", async (c) => {
+  const connection = await getConnection();
   try {
     const productsCount: any = await db.query("SELECT COUNT(*) as count FROM products");
     const usersCount: any = await db.query("SELECT COUNT(*) as count FROM users");
@@ -44,6 +47,7 @@ app.get("/stats", async (c) => {
 app.route("/users", users);
 app.route("/products", products);
 app.route("/categories", categories);
+app.route("/home", home);
 
 // 测试数据库连接端点
 app.get("/db-test", async (c) => {

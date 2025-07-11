@@ -5,97 +5,106 @@ import { authMiddleware } from "../middleware/auth";
 
 function parseHarForProducts(harContent: string): Product[] {
   const products: Product[] = [];
-  const processedSpus = new Set<string>();
+    const processedSpus = new Set<string>();
 
-  try {
-    const har: Har = JSON.parse(harContent);
-    const productListEntries = har.log.entries.filter(
-      (entry) =>
-        entry.request.url.includes("/goods-portal/grouping/list") &&
-        entry.response.content?.text,
-    );
+    try {
+        const har: Har = JSON.parse(harContent);
+        const productListEntries = har.log.entries.filter(entry =>
+            entry.request.url.includes('/goods-portal/grouping/list') &&
+            entry.response.content?.text
+        );
 
-    for (const entry of productListEntries) {
-      const responseBody = JSON.parse(entry.response.content.text!);
-      const productList: Product[] = responseBody.data?.dataList || [];
+        for (const entry of productListEntries) {
+            const responseBody = JSON.parse(entry.response.content.text!);
+            const productList: Product[] = responseBody.data?.dataList || [];
 
-      for (const product of productList) {
-        const { spuId, storeId } = product;
-        const uniqueKey = `${spuId}-${storeId}`;
+            for (const product of productList) {
+                const { spuId, storeId } = product;
+                const uniqueKey = `${spuId}-${storeId}`;
 
-        if (spuId && !processedSpus.has(uniqueKey)) {
-          processedSpus.add(uniqueKey);
-
-          let price_str = "0";
-          const salePriceInfo = product.priceInfo?.find(
-            (p) => p.priceType === 1,
-          );
-          if (salePriceInfo?.price) {
-            price_str = salePriceInfo.price;
-          }
-
-          products.push({
-            spuId: product.spuId,
-            storeId: product.storeId,
-            title: product.title || "",
-            subTitle: product.subTitle || "",
-            image: product.image || "",
-            priceInfo: [{ priceType: 1, price: price_str }], // 只保留我们关心的价格
-            stockInfo: { stockQuantity: product.stockInfo?.stockQuantity || 0 },
-            isAvailable: product.isAvailable ?? false,
-            isImport: product.isImport ?? false,
-          });
+                if (spuId && !processedSpus.has(uniqueKey)) {
+                    processedSpus.add(uniqueKey);
+                    products.push(product); // 直接推送原始的product对象
+                }
+            }
         }
-      }
+    } catch (error) {
+        throw new Error(`解析HAR文件时出错: ${(error as Error).message}`);
     }
-  } catch (error) {
-    throw new Error(`解析HAR文件时出错: ${(error as Error).message}`);
-  }
-  return products;
+    return products;
 }
 
 async function upsertProducts(products: Product[]): Promise<void> {
   if (products.length === 0) {
-    console.log("没有要更新到数据库的商品。");
+    console.log("没有要同步到数据库的商品。");
     return;
   }
 
   const connection = await getConnection();
-  console.log(`准备将 ${products.length} 条商品数据插入或更新到数据库...`);
 
-  try {
-    const sql = `
-            INSERT INTO products (spu_id, store_id, title, sub_title, image_url, price, stock_quantity, is_available, is_import)
-            VALUES ?
-            ON DUPLICATE KEY UPDATE
-                title = VALUES(title),
-                sub_title = VALUES(sub_title),
-                image_url = VALUES(image_url),
-                price = VALUES(price),
-                stock_quantity = VALUES(stock_quantity),
-                is_available = VALUES(is_available),
-                is_import = VALUES(is_import);
-        `;
-
-    // 将对象数组转换为用于批量插入的二维数组
-    const values = products.map((p) => [
+  // 准备商品数据
+  const productValues = products.map((p) => {
+    const salePriceInfo = p.priceInfo?.find((pi) => pi.priceType === 1);
+    return [
       p.spuId,
       p.storeId,
       p.title,
       p.subTitle,
       p.image,
-      p.priceInfo?.[0]?.price || "0",
+      salePriceInfo?.price || "0",
       p.stockInfo?.stockQuantity,
       p.isAvailable,
       p.isImport,
-    ]);
+    ];
+  });
 
-    const [result] = await connection.query(sql, [values]);
-    console.log("数据库操作成功:", result);
+  // 准备分类映射数据
+  const mappingValues = products.flatMap((p) =>
+    p.categoryIdList ? p.categoryIdList.map((catId) => [p.spuId, catId]) : []
+  );
+
+  // *** 新增：在执行前打印将要插入的条数 ***
+  console.log(`准备将 ${productValues.length} 条商品记录插入或更新...`);
+  if (mappingValues.length > 0) {
+    console.log(
+      `准备将 ${mappingValues.length} 条商品-分类映射关系插入或更新...`
+    );
+  } else {
+    console.log("未发现商品-分类映射关系。");
+  }
+
+  try {
+    await connection.beginTransaction();
+
+    // 1. 插入或更新商品表
+    if (productValues.length > 0) {
+      const productSql = `
+            INSERT INTO products (spu_id, store_id, title, sub_title, image_url, price, stock_quantity, is_available, is_import) 
+            VALUES ?
+            ON DUPLICATE KEY UPDATE
+                title = VALUES(title), sub_title = VALUES(sub_title), image_url = VALUES(image_url),
+                price = VALUES(price), stock_quantity = VALUES(stock_quantity), is_available = VALUES(is_available),
+                is_import = VALUES(is_import);
+        `;
+      await connection.query(productSql, [productValues]);
+    }
+
+    // 2. 插入或更新分类映射表
+    if (mappingValues.length > 0) {
+      const mappingSql = `
+            INSERT INTO product_to_category_map (product_spu_id, category_id)
+            VALUES ?
+            ON DUPLICATE KEY UPDATE product_spu_id=VALUES(product_spu_id);
+        `;
+      await connection.query(mappingSql, [mappingValues]);
+    }
+
+    await connection.commit();
+    console.log("数据库事务已成功提交！");
   } catch (error) {
-    console.error("数据库操作失败:", error);
+    await connection.rollback();
+    console.error("数据库操作失败，事务已回滚:", error);
   } finally {
-    // 无论成功或失败，都释放连接回连接池
     if (connection) {
       connection.release();
     }
@@ -164,9 +173,8 @@ async function getProducts(options: {
     // Re-use the same values for where clauses, but not for limit/offset
     const [totalResult] = (await connection.query(
       countSql,
-      values.slice(0, whereClauses.length),
+      values.slice(0, whereClauses.length)
     )) as any[];
-
 
     return {
       data: products,
@@ -211,15 +219,8 @@ products.post("/parse", async (c) => {
 
 products.get("/", async (c) => {
   try {
-    const {
-      search,
-      sortBy,
-      sortOrder,
-      isImport,
-      isAvailable,
-      page,
-      pageSize,
-    } = c.req.query();
+    const { search, sortBy, sortOrder, isImport, isAvailable, page, pageSize } =
+      c.req.query();
     const result = await getProducts({
       search,
       sortBy,

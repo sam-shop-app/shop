@@ -21,6 +21,7 @@ export interface Product {
   stockInfo?: StockInfo;
   isAvailable?: boolean;
   isImport?: boolean;
+  categoryIdList?: string[];
 }
 
 // HAR文件中单个请求条目

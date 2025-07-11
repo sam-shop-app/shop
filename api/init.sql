@@ -34,6 +34,21 @@ DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci
 COMMENT='山姆商品信息表，用于存储从HAR文件解析的数据';
 
+-- 商品与分类的关联表 (多对多关系)
+DROP TABLE IF EXISTS `product_to_category_map`;
+
+CREATE TABLE `product_to_category_map` (
+  `product_spu_id` VARCHAR(50) NOT NULL COMMENT '商品SPU ID，对应 products 表的 spu_id',
+  `category_id` VARCHAR(50) NOT NULL COMMENT '分类ID，对应 product_categories 表的 id',
+  
+  -- 创建复合主键，确保同一个商品和同一个分类的关联关系只有一条
+  PRIMARY KEY (`product_spu_id`, `category_id`),
+  
+  -- 添加索引以优化查询性能
+  INDEX `idx_category_id` (`category_id`)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品与分类的映射关系表';
+
 -- 如果已存在名为 `users` 的表，则先删除，方便脚本重复执行
 DROP TABLE IF EXISTS `users`;
 
