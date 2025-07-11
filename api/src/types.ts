@@ -1,3 +1,4 @@
+import type { RowDataPacket } from "mysql2/promise";
 // API响应中单个商品的价格信息
 export interface PriceInfo {
   priceType: number;
@@ -64,4 +65,18 @@ export interface UserRegistration {
 export interface UserCredentials {
   username: string;
   password: string;
+}
+
+// 分类数据接口
+export interface Category extends RowDataPacket {
+  id: string;
+  parent_id: string | null;
+  name: string;
+  level: number;
+  image_url: string | null;
+  sort_order: number;
+}
+
+export interface CategoryWithChildren extends Category {
+  children: CategoryWithChildren[];
 }

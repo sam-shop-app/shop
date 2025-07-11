@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import db from "./utils/connection";
 import products from "./products";
 import users from "./users";
+import categories from "./categories";
 
 // 创建 Hono 应用实例
 const app = new Hono();
@@ -27,10 +28,12 @@ app.get("/stats", async (c) => {
   try {
     const productsCount: any = await db.query("SELECT COUNT(*) as count FROM products");
     const usersCount: any = await db.query("SELECT COUNT(*) as count FROM users");
+    const categoriesCount: any = await db.query("SELECT COUNT(*) as count FROM product_categories");
 
     return c.json({
       products: productsCount[0].count,
       users: usersCount[0].count,
+      categories: categoriesCount[0].count
     });
   } catch (error) {
     console.error("Error fetching stats:", error);
@@ -40,6 +43,7 @@ app.get("/stats", async (c) => {
 
 app.route("/users", users);
 app.route("/products", products);
+app.route("/categories", categories);
 
 // 测试数据库连接端点
 app.get("/db-test", async (c) => {

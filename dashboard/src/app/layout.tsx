@@ -83,6 +83,11 @@ export default function RootLayout({
                     用户
                   </Link>
                 </NavbarItem>
+                <NavbarItem isActive={pathname.startsWith("/categories")}> 
+                  <Link href="/categories"> 
+                    分类 
+                  </Link> 
+                </NavbarItem>
               </NavbarContent>
 
               <NavbarContent as="div" justify="end">
