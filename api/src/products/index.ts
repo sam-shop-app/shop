@@ -186,6 +186,13 @@ async function getProducts(options: {
     sql += ` LIMIT ? OFFSET ?`;
     values.push(pageSize, offset);
 
+    // 打印最终的SQL语句和参数用于调试
+    console.log("=== getProducts SQL Debug ===");
+    console.log("Final SQL:", sql);
+    console.log("Values:", values);
+    console.log("CategoryId:", categoryId);
+    console.log("=============================");
+
     const [products] = await connection.query(sql, values);
 
     // Get total count for pagination
@@ -196,6 +203,13 @@ async function getProducts(options: {
     if (whereClauses.length > 0) {
       countSql += ` WHERE ${whereClauses.join(" AND ")}`;
     }
+    
+    // 打印计数SQL语句用于调试
+    console.log("=== Count SQL Debug ===");
+    console.log("Count SQL:", countSql);
+    console.log("Count Values:", values.slice(0, whereClauses.length));
+    console.log("=======================");
+    
     // Re-use the same values for where clauses, but not for limit/offset
     const [totalResult] = (await connection.query(
       countSql,

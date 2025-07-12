@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Card,
@@ -8,13 +8,13 @@ import {
   Button,
   Input,
   Chip,
-  Pagination,
   Dropdown,
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
   Tabs,
   Tab,
+  Spinner,
 } from "@heroui/react";
 import { Container } from "@/components";
 import {
@@ -60,15 +60,16 @@ const HomePage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalPages, setTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+  const observer = useRef<IntersectionObserver | null>(null);
 
   // 从URL参数获取当前状态
-  const currentPage = Number(searchParams.get("page")) || 1;
   const searchQuery = searchParams.get("search") || "";
   const selectedCategory = searchParams.get("category") || "";
   const sortBy = searchParams.get("sort") || "spu_id";
-  const minPrice = searchParams.get("minPrice") || "";
-  const maxPrice = searchParams.get("maxPrice") || "";
+  const [selectedParentCategory, setSelectedParentCategory] = useState<string>("");
 
   // 更新URL参数
   const updateParams = (newParams: Record<string, string | number | null>) => {
@@ -81,6 +82,10 @@ const HomePage = () => {
       }
     });
     setSearchParams(params);
+    // 重置分页状态
+    setProducts([]);
+    setPage(1);
+    setHasMore(true);
   };
 
   // 获取分类数据
@@ -99,72 +104,113 @@ const HomePage = () => {
   }, []);
 
   // 获取商品数据
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
+  const fetchProducts = useCallback(async (pageNum: number, isNewSearch = false) => {
+    try {
+      if (pageNum === 1 || isNewSearch) {
         setLoading(true);
-
-        const params: Record<string, string> = {
-          page: String(currentPage),
-          pageSize: "12",
-        };
-
-        if (searchQuery) params.search = searchQuery;
-        if (selectedCategory) params.categoryId = selectedCategory;
-        if (minPrice) params.minPrice = minPrice;
-        if (maxPrice) params.maxPrice = maxPrice;
-
-        // 处理排序
-        if (sortBy === "price_asc") {
-          params.sortBy = "price";
-          params.sortOrder = "asc";
-        } else if (sortBy === "price_desc") {
-          params.sortBy = "price";
-          params.sortOrder = "desc";
-        } else {
-          params.sortBy = sortBy;
-          params.sortOrder = "asc";
-        }
-
-        const queryString = new URLSearchParams(params).toString();
-        const res = await request.get(`/products?${queryString}`);
-
-        setProducts(res.data.data || []);
-        setTotalPages(Math.ceil((res.data.total || 0) / 12));
-      } catch (error) {
-        console.error("Failed to fetch products", error);
-        setProducts([]);
-      } finally {
-        setLoading(false);
+      } else {
+        setLoadingMore(true);
       }
-    };
-    fetchProducts();
-  }, [currentPage, searchQuery, selectedCategory, sortBy, minPrice, maxPrice]);
+
+      const params: Record<string, string> = {
+        page: String(pageNum),
+        pageSize: "12",
+      };
+
+      if (searchQuery) params.search = searchQuery;
+      if (selectedCategory) params.categoryId = selectedCategory;
+
+      // 处理排序
+      if (sortBy === "price_asc") {
+        params.sortBy = "price";
+        params.sortOrder = "asc";
+      } else if (sortBy === "price_desc") {
+        params.sortBy = "price";
+        params.sortOrder = "desc";
+      } else {
+        params.sortBy = sortBy;
+        params.sortOrder = "asc";
+      }
+
+      const queryString = new URLSearchParams(params).toString();
+      const res = await request.get(`/products?${queryString}`);
+
+      const newProducts = res.data.data || [];
+      const total = res.data.total || 0;
+      
+      if (pageNum === 1 || isNewSearch) {
+        setProducts(newProducts);
+      } else {
+        setProducts(prev => [...prev, ...newProducts]);
+      }
+      
+      setHasMore(pageNum * 12 < total);
+    } catch (error) {
+      console.error("Failed to fetch products", error);
+      if (pageNum === 1) {
+        setProducts([]);
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [searchQuery, selectedCategory, sortBy]);
+
+  // 监听参数变化，重新加载商品
+  useEffect(() => {
+    setPage(1);
+    fetchProducts(1, true);
+  }, [fetchProducts]);
+
+  // 无限滚动回调
+  const lastProductElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (loading || loadingMore) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => {
+          const nextPage = prevPage + 1;
+          fetchProducts(nextPage);
+          return nextPage;
+        });
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [loading, loadingMore, hasMore, fetchProducts]);
 
   // 渲染分类选择器
   const renderCategoryTabs = () => {
-    const flatCategories: Category[] = [];
-
-    const flatten = (cats: Category[]) => {
-      cats.forEach((cat) => {
-        flatCategories.push(cat);
+    // 获取当前选中分类的父分类
+    const getParentCategory = (categoryId: string): Category | null => {
+      for (const cat of categories) {
+        if (cat.id === categoryId) return null; // 是一级分类
         if (cat.children) {
-          flatten(cat.children);
+          for (const child of cat.children) {
+            if (child.id === categoryId) return cat;
+            if (child.children) {
+              for (const grandChild of child.children) {
+                if (grandChild.id === categoryId) return cat;
+              }
+            }
+          }
         }
-      });
+      }
+      return null;
     };
 
-    flatten(categories);
+    const parentCat = selectedCategory ? getParentCategory(selectedCategory) : null;
+    const activeKey = parentCat ? parentCat.id : (selectedCategory || "all");
 
     return (
       <Tabs
-        selectedKey={selectedCategory || "all"}
-        onSelectionChange={(key) =>
+        selectedKey={activeKey}
+        onSelectionChange={(key) => {
+          const newCategory = key === "all" ? "" : String(key);
+          setSelectedParentCategory(newCategory);
           updateParams({
-            category: key === "all" ? null : String(key),
-            page: 1,
-          })
-        }
+            category: newCategory || null,
+          });
+        }}
         variant="underlined"
         classNames={{
           tabList:
@@ -184,35 +230,75 @@ const HomePage = () => {
 
   // 渲染二三级分类筛选
   const renderSubCategories = () => {
-    if (!selectedCategory) return null;
+    const currentParentCategory = selectedParentCategory || selectedCategory;
+    if (!currentParentCategory) return null;
 
-    const selectedCat = categories.find((cat) => {
-      const findInTree = (c: Category): Category | null => {
-        if (c.id === selectedCategory) return c;
-        if (c.children) {
-          for (const child of c.children) {
-            const found = findInTree(child);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
-      return findInTree(cat);
-    });
-
+    const selectedCat = categories.find(cat => cat.id === currentParentCategory);
     if (!selectedCat?.children?.length) return null;
 
     return (
       <div className="flex flex-wrap gap-2 mt-4">
-        {selectedCat.children.map((subCat) => (
+        <Chip
+          variant={selectedCategory === currentParentCategory ? "solid" : "bordered"}
+          color="primary"
+          className="cursor-pointer"
+          onClick={() => updateParams({ category: currentParentCategory })}
+        >
+          全部{selectedCat.name}
+        </Chip>
+        {selectedCat.children.map((subCat) => {
+          const isSelected = selectedCategory === subCat.id;
+          return (
+            <Chip
+              key={subCat.id}
+              variant={isSelected ? "solid" : "bordered"}
+              color="primary"
+              className="cursor-pointer"
+              onClick={() => {
+                updateParams({ category: subCat.id });
+                if (subCat.children?.length) {
+                  // 如果有三级分类，显示三级分类选项
+                }
+              }}
+            >
+              {subCat.name}
+            </Chip>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // 渲染三级分类
+  const renderThirdLevelCategories = () => {
+    if (!selectedCategory) return null;
+
+    // 找到当前选中的二级分类
+    let secondLevelCat: Category | null = null;
+    for (const cat of categories) {
+      if (cat.children) {
+        const found = cat.children.find(child => child.id === selectedCategory);
+        if (found) {
+          secondLevelCat = found;
+          break;
+        }
+      }
+    }
+
+    if (!secondLevelCat?.children?.length) return null;
+
+    return (
+      <div className="flex flex-wrap gap-2 mt-2">
+        {secondLevelCat.children.map((thirdCat) => (
           <Chip
-            key={subCat.id}
-            variant={selectedCategory === subCat.id ? "solid" : "bordered"}
-            color="primary"
+            key={thirdCat.id}
+            variant={selectedCategory === thirdCat.id ? "solid" : "bordered"}
+            color="secondary"
+            size="sm"
             className="cursor-pointer"
-            onClick={() => updateParams({ category: subCat.id, page: 1 })}
+            onClick={() => updateParams({ category: thirdCat.id })}
           >
-            {subCat.name}
+            {thirdCat.name}
           </Chip>
         ))}
       </div>
@@ -231,7 +317,7 @@ const HomePage = () => {
               placeholder="搜索商品..."
               value={searchQuery}
               onChange={(e) =>
-                updateParams({ search: e.target.value, page: 1 })
+                updateParams({ search: e.target.value })
               }
               startContent={
                 <MagnifyingGlassIcon className="h-5 w-5 text-default-400" />
@@ -253,7 +339,7 @@ const HomePage = () => {
               </DropdownTrigger>
               <DropdownMenu
                 selectedKeys={[sortBy]}
-                onAction={(key) => updateParams({ sort: String(key), page: 1 })}
+                onAction={(key) => updateParams({ sort: String(key) })}
               >
                 {sortOptions.map((option) => (
                   <DropdownItem key={option.key}>{option.label}</DropdownItem>
@@ -261,38 +347,13 @@ const HomePage = () => {
               </DropdownMenu>
             </Dropdown>
           </div>
-
-          {/* 价格筛选 */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-foreground/60">价格范围:</span>
-            <Input
-              type="number"
-              placeholder="最低价"
-              value={minPrice}
-              onChange={(e) =>
-                updateParams({ minPrice: e.target.value, page: 1 })
-              }
-              className="w-32"
-              size="sm"
-            />
-            <span className="text-foreground/60">-</span>
-            <Input
-              type="number"
-              placeholder="最高价"
-              value={maxPrice}
-              onChange={(e) =>
-                updateParams({ maxPrice: e.target.value, page: 1 })
-              }
-              className="w-32"
-              size="sm"
-            />
-          </div>
         </div>
 
         {/* 分类选择 */}
         <div className="space-y-4">
           {renderCategoryTabs()}
           {renderSubCategories()}
+          {renderThirdLevelCategories()}
         </div>
 
         {/* 商品列表 */}
@@ -315,78 +376,85 @@ const HomePage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <Card
-                key={product.spu_id}
-                className="border-none group"
-                isPressable
-              >
-                <CardBody className="p-0 overflow-hidden">
-                  <Link to={`/products/${product.spu_id}`}>
-                    <Image
-                      src={product.image_url}
-                      alt={product.title}
-                      className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
-                      radius="lg"
-                      fallbackSrc="/images/placeholder.jpg"
-                    />
-                  </Link>
-                </CardBody>
-                <CardFooter className="flex-col items-start px-3 py-3">
-                  <div className="w-full">
-                    <h3 className="text-sm font-medium text-foreground line-clamp-2 h-10">
-                      {product.title}
-                    </h3>
-                    {product.sub_title && (
-                      <p className="text-xs text-foreground/60 mt-1 line-clamp-1">
-                        {product.sub_title}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between mt-3">
-                      <div className="flex flex-col">
-                        <span className="text-lg font-bold text-danger">
-                          {formatPrice(parseFloat(product.price))}
-                        </span>
-                        <span className="text-xs text-foreground/50">
-                          库存: {product.stock_quantity}
-                        </span>
+            {products.map((product, index) => {
+              // 在最后一个元素上添加ref以实现无限滚动
+              const isLast = index === products.length - 1;
+              return (
+                <Card
+                  key={product.spu_id}
+                  ref={isLast ? lastProductElementRef : null}
+                  className="border-none group"
+                  isPressable
+                >
+                  <CardBody className="p-0 overflow-hidden">
+                    <Link to={`/products/${product.spu_id}`}>
+                      <Image
+                        src={product.image_url}
+                        alt={product.title}
+                        className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
+                        radius="lg"
+                        fallbackSrc="/images/placeholder.jpg"
+                      />
+                    </Link>
+                  </CardBody>
+                  <CardFooter className="flex-col items-start px-3 py-3">
+                    <div className="w-full">
+                      <h3 className="text-sm font-medium text-foreground line-clamp-2 h-10">
+                        {product.title}
+                      </h3>
+                      {product.sub_title && (
+                        <p className="text-xs text-foreground/60 mt-1 line-clamp-1">
+                          {product.sub_title}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between mt-3">
+                        <div className="flex flex-col">
+                          <span className="text-lg font-bold text-danger">
+                            {formatPrice(parseFloat(product.price))}
+                          </span>
+                          <span className="text-xs text-foreground/50">
+                            库存: {product.stock_quantity}
+                          </span>
+                        </div>
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          color="primary"
+                          variant="ghost"
+                          isDisabled={
+                            !product.is_available || product.stock_quantity === 0
+                          }
+                          onPress={() => {
+                            addItem({
+                              id: product.spu_id,
+                              name: product.title,
+                              price: parseFloat(product.price),
+                              image: product.image_url,
+                              stock: product.stock_quantity,
+                            });
+                          }}
+                        >
+                          <ShoppingCartIcon className="h-5 w-5" />
+                        </Button>
                       </div>
-                      <Button
-                        isIconOnly
-                        size="sm"
-                        color="primary"
-                        variant="ghost"
-                        isDisabled={
-                          !product.is_available || product.stock_quantity === 0
-                        }
-                        onPress={() => {
-                          addItem({
-                            id: product.spu_id,
-                            name: product.title,
-                            price: parseFloat(product.price),
-                            image: product.image_url,
-                            stock: product.stock_quantity,
-                          });
-                        }}
-                      >
-                        <ShoppingCartIcon className="h-5 w-5" />
-                      </Button>
                     </div>
-                  </div>
-                </CardFooter>
-              </Card>
-            ))}
+                  </CardFooter>
+                </Card>
+              );
+            })}
           </div>
         )}
 
-        {/* 分页 */}
-        {totalPages > 1 && (
+        {/* 加载更多指示器 */}
+        {loadingMore && (
           <div className="flex justify-center mt-8">
-            <Pagination
-              total={totalPages}
-              page={currentPage}
-              onChange={(page) => updateParams({ page })}
-            />
+            <Spinner size="lg" />
+          </div>
+        )}
+        
+        {!hasMore && products.length > 0 && (
+          <div className="text-center py-8">
+            <p className="text-foreground/60">已加载全部商品</p>
           </div>
         )}
       </div>
