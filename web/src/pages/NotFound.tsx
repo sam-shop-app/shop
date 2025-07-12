@@ -45,7 +45,7 @@ export default function NotFound() {
             </Button>
             <Button
               as={Link}
-              href="/products"
+              href="/"
               variant="flat"
               color="primary"
               className="flex-1"

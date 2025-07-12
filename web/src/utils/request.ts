@@ -1,12 +1,12 @@
-import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
-import { useAuth } from '@/hooks/useAuth';
+import axios, { AxiosInstance, AxiosError } from "axios";
+import { useAuth } from "@/hooks/useAuth";
 
 // 创建axios实例
 const request: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:13100',
+  baseURL: "http://localhost:13100",
   timeout: 15000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -21,7 +21,7 @@ request.interceptors.request.use(
   },
   (error: AxiosError) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // GET 请求
@@ -61,18 +61,24 @@ export const del = async <T>(url: string, params?: object): Promise<T> => {
 };
 
 // 上传文件
-export const upload = async <T>(url: string, file: File, onProgress?: (progress: number) => void): Promise<T> => {
+export const upload = async <T>(
+  url: string,
+  file: File,
+  onProgress?: (progress: number) => void,
+): Promise<T> => {
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append("file", file);
 
   try {
     return await request.post(url, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total && onProgress) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const progress = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total,
+          );
           onProgress(progress);
         }
       },
@@ -83,15 +89,18 @@ export const upload = async <T>(url: string, file: File, onProgress?: (progress:
 };
 
 // 下载文件
-export const download = async (url: string, filename: string): Promise<void> => {
+export const download = async (
+  url: string,
+  filename: string,
+): Promise<void> => {
   try {
     const response = await request.get(url, {
-      responseType: 'blob',
+      responseType: "blob",
     });
 
     const blob = new Blob([response.data]);
     const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = downloadUrl;
     link.download = filename;
     document.body.appendChild(link);

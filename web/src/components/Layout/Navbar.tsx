@@ -22,9 +22,9 @@ import { useCart } from "@/hooks/useCart";
 
 const navigation = [
   { name: "首页", href: "/" },
-  { name: "全部商品", href: "/products" },
-  { name: "特价商品", href: "/products?type=sale" },
-  { name: "新品上市", href: "/products?type=new" },
+  { name: "全部商品", href: "/" },
+  { name: "特价商品", href: "/?sort=price_asc" },
+  { name: "新品上市", href: "/" },
 ];
 
 const Navbare = () => {

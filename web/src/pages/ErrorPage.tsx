@@ -91,7 +91,7 @@ export default function ErrorPage() {
           <div className="flex flex-wrap justify-center gap-4">
             <Button
               as={Link}
-              href="/products"
+              href="/"
               variant="light"
               size="sm"
             >

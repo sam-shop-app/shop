@@ -89,7 +89,7 @@ const CartPage = () => {
               <p className="text-xl text-foreground/60">购物车是空的</p>
               <Button
                 as={Link}
-                to="/products"
+                to="/"
                 color="primary"
                 variant="flat"
                 size="lg"

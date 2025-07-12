@@ -117,6 +117,9 @@ async function getProducts(options: {
   sortOrder?: "asc" | "desc";
   isImport?: boolean;
   isAvailable?: boolean;
+  categoryId?: string;
+  minPrice?: number;
+  maxPrice?: number;
   page?: number;
   pageSize?: number;
 }) {
@@ -126,37 +129,57 @@ async function getProducts(options: {
     sortOrder = "asc",
     isImport,
     isAvailable,
+    categoryId,
+    minPrice,
+    maxPrice,
     page = 1,
     pageSize = 10,
   } = options;
   const connection = await getConnection();
   try {
-    let sql = "SELECT * FROM products";
+    let sql = "SELECT p.* FROM products p";
     const whereClauses = [];
     const values = [];
 
+    // 如果需要按分类筛选，需要JOIN分类映射表
+    if (categoryId) {
+      sql += " JOIN product_to_category_map ptcm ON p.spu_id = ptcm.product_spu_id";
+      whereClauses.push("ptcm.category_id = ?");
+      values.push(categoryId);
+    }
+
     if (search) {
-      whereClauses.push("title LIKE ?");
+      whereClauses.push("p.title LIKE ?");
       values.push(`%${search}%`);
     }
 
     if (isImport !== undefined) {
-      whereClauses.push("is_import = ?");
+      whereClauses.push("p.is_import = ?");
       values.push(isImport);
     }
 
     if (isAvailable !== undefined) {
-      whereClauses.push("is_available = ?");
+      whereClauses.push("p.is_available = ?");
       values.push(isAvailable);
+    }
+
+    if (minPrice !== undefined) {
+      whereClauses.push("CAST(p.price as DECIMAL(10,2)) >= ?");
+      values.push(minPrice);
+    }
+
+    if (maxPrice !== undefined) {
+      whereClauses.push("CAST(p.price as DECIMAL(10,2)) <= ?");
+      values.push(maxPrice);
     }
 
     if (whereClauses.length > 0) {
       sql += ` WHERE ${whereClauses.join(" AND ")}`;
     }
 
-    const validSortBy = ["spu_id", "price", "stock_quantity"];
+    const validSortBy = ["spu_id", "price", "stock_quantity", "title"];
     if (validSortBy.includes(sortBy)) {
-      sql += ` ORDER BY ${sortBy} ${sortOrder === "desc" ? "DESC" : "ASC"}`;
+      sql += ` ORDER BY p.${sortBy} ${sortOrder === "desc" ? "DESC" : "ASC"}`;
     }
 
     const offset = (page - 1) * pageSize;
@@ -166,7 +189,10 @@ async function getProducts(options: {
     const [products] = await connection.query(sql, values);
 
     // Get total count for pagination
-    let countSql = "SELECT COUNT(*) as total FROM products";
+    let countSql = "SELECT COUNT(DISTINCT p.spu_id) as total FROM products p";
+    if (categoryId) {
+      countSql += " JOIN product_to_category_map ptcm ON p.spu_id = ptcm.product_spu_id";
+    }
     if (whereClauses.length > 0) {
       countSql += ` WHERE ${whereClauses.join(" AND ")}`;
     }
@@ -193,7 +219,9 @@ async function getProducts(options: {
 
 const products = new Hono();
 
-products.use("*", authMiddleware); // 对所有商品路由启用认证
+// 需要认证的路由
+products.use("/upsert", authMiddleware);
+products.use("/parse", authMiddleware);
 
 products.post("/upsert", async (c) => {
   try {
@@ -219,7 +247,7 @@ products.post("/parse", async (c) => {
 
 products.get("/", async (c) => {
   try {
-    const { search, sortBy, sortOrder, isImport, isAvailable, page, pageSize } =
+    const { search, sortBy, sortOrder, isImport, isAvailable, categoryId, minPrice, maxPrice, page, pageSize } =
       c.req.query();
     const result = await getProducts({
       search,
@@ -227,6 +255,9 @@ products.get("/", async (c) => {
       sortOrder: sortOrder as "asc" | "desc",
       isImport: isImport ? isImport === "true" : undefined,
       isAvailable: isAvailable ? isAvailable === "true" : undefined,
+      categoryId,
+      minPrice: minPrice ? parseFloat(minPrice) : undefined,
+      maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
       page: page ? parseInt(page, 10) : undefined,
       pageSize: pageSize ? parseInt(pageSize, 10) : undefined,
     });
