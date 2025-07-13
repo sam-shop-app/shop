@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { getConnection } from "../utils/connection";
 import type { Har, Product } from "@/types";
 import { authMiddleware } from "../middleware/auth";
+import type { PoolConnection } from "mysql2/promise";
 
 /**
  * 从HAR文件内容中提取商品数据，并将请求中frontCategoryIds的第一个ID挂载到每个商品上。
@@ -25,7 +26,7 @@ function parseHarForProducts(harContent: string): Product[] {
       const requestBody = JSON.parse(entry.request.postData!.text!);
       const frontCategoryIds: string[] = requestBody.frontCategoryIds || [];
 
-      // *** 关键优化点：只取frontCategoryIds的第一个ID作为关联 ***
+      // 只取frontCategoryIds的第一个ID作为关联
       const contextCategoryId = frontCategoryIds[0];
 
       // 如果没有上下文分类ID，则跳过此条目
@@ -56,6 +57,40 @@ function parseHarForProducts(harContent: string): Product[] {
   return products;
 }
 
+/**
+ * 递归查询一个分类的所有父级ID
+ * @param connection - 数据库连接
+ * @param categoryId - 当前分类ID
+ * @param parentIds - 用于累积父级ID的集合
+ * @returns 包含所有父级ID的Set
+ */
+async function findAllParentCategoryIds(
+  connection: PoolConnection,
+  categoryId: string,
+  parentIds = new Set<string>(),
+): Promise<Set<string>> {
+  if (!categoryId) {
+    return parentIds;
+  }
+
+  const [rows] = (await connection.query(
+    "SELECT parent_id FROM product_categories WHERE id = ?",
+    [categoryId],
+  )) as any[];
+
+  const parent = rows[0];
+  if (parent && parent.parent_id) {
+    parentIds.add(parent.parent_id);
+    // 递归查找上一级
+    await findAllParentCategoryIds(connection, parent.parent_id, parentIds);
+  }
+  return parentIds;
+}
+
+/**
+ * 将Product对象数组及其完整的分类映射关系（包括父级）批量插入或更新到数据库中。
+ * @param products - Product对象数组
+ */
 async function upsertProducts(products: Product[]): Promise<void> {
   if (products.length === 0) {
     console.log("没有要同步到数据库的商品。");
@@ -80,22 +115,57 @@ async function upsertProducts(products: Product[]): Promise<void> {
     ];
   });
 
-  // 准备分类映射数据
-  const mappingValues = products.flatMap((p) =>
-    p.categoryIdList ? p.categoryIdList.map((catId) => [p.spuId, catId]) : [],
+  // 准备初始的直接分类映射关系
+  const directMappings = products.flatMap((p) =>
+    p.categoryIdList
+      ? p.categoryIdList.map((catId) => ({
+          productSpuId: p.spuId,
+          categoryId: catId,
+        }))
+      : [],
   );
 
   console.log(`准备将 ${productValues.length} 条商品记录插入或更新...`);
-  if (mappingValues.length > 0) {
-    console.log(
-      `准备将 ${mappingValues.length} 条商品-分类映射关系插入或更新...`,
-    );
-  } else {
-    console.log("未发现商品-分类映射关系。");
-  }
 
   try {
     await connection.beginTransaction();
+
+    // *** 关键逻辑：补全父级分类信息 ***
+    const allMappings = new Map<
+      string,
+      { productSpuId: string; categoryId: string }
+    >();
+
+    // 先将所有直接映射加入
+    directMappings.forEach((m) =>
+      allMappings.set(`${m.productSpuId}-${m.categoryId}`, m),
+    );
+
+    console.log(
+      `发现 ${directMappings.length} 条直接商品-分类映射关系，开始查找并补齐父级分类...`,
+    );
+
+    // 为每个直接映射查找并添加其父级映射
+    for (const mapping of directMappings) {
+      const parentIds = await findAllParentCategoryIds(
+        connection,
+        mapping.categoryId,
+      );
+      parentIds.forEach((parentId) => {
+        const key = `${mapping.productSpuId}-${parentId}`;
+        if (!allMappings.has(key)) {
+          allMappings.set(key, {
+            productSpuId: mapping.productSpuId,
+            categoryId: parentId,
+          });
+        }
+      });
+    }
+
+    const finalMappingValues = Array.from(allMappings.values());
+    console.log(
+      `总计将插入或更新 ${finalMappingValues.length} 条商品-分类映射关系。`,
+    );
 
     // 1. 插入或更新商品表
     if (productValues.length > 0) {
@@ -110,14 +180,18 @@ async function upsertProducts(products: Product[]): Promise<void> {
       await connection.query(productSql, [productValues]);
     }
 
-    // 2. 插入或更新分类映射表
-    if (mappingValues.length > 0) {
+    // 2. 插入或更新完整的分类映射表
+    if (finalMappingValues.length > 0) {
       const mappingSql = `
                 INSERT INTO product_to_category_map (product_spu_id, category_id)
                 VALUES ?
                 ON DUPLICATE KEY UPDATE product_spu_id=VALUES(product_spu_id);
             `;
-      await connection.query(mappingSql, [mappingValues]);
+      const valuesToInsert = finalMappingValues.map((m) => [
+        m.productSpuId,
+        m.categoryId,
+      ]);
+      await connection.query(mappingSql, [valuesToInsert]);
     }
 
     await connection.commit();
