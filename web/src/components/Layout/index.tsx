@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
-import {} from "@heroui/react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import Providers from "./providers";
 
 const Layout = () => {
   return (
@@ -12,7 +12,9 @@ const Layout = () => {
       {/* Main Content */}
       <main className="grow">
         <div className="py-8">
-          <Outlet />
+          <Providers>
+            <Outlet />
+          </Providers>
         </div>
       </main>
 

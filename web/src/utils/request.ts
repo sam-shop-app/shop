@@ -24,6 +24,20 @@ request.interceptors.request.use(
   },
 );
 
+// 响应拦截器
+request.interceptors.response.use(
+  (response) => {
+    return response.data;
+  },
+  (error: AxiosError) => {
+    console.error('API请求错误:', error);
+    if (error.response) {
+      console.error('错误响应:', error.response.data);
+    }
+    return Promise.reject(error);
+  },
+);
+
 // GET 请求
 export const get = async <T>(url: string, params?: object): Promise<T> => {
   try {

@@ -50,22 +50,44 @@ export interface User {
   email: string;
   full_name?: string;
   avatar_url?: string;
-  phone_number?: string;
+  phone_number: string;
   role: "client" | "admin";
   status: number;
   created_at: string;
-  password?: string;
+  updated_at?: string;
+  password: string;
+  phone_verified?: boolean;
+  email_verified?: boolean;
+  wechat_openid?: string;
+  wechat_unionid?: string;
+  last_login_at?: string;
+  login_method?: "password" | "phone" | "email" | "wechat";
 }
 
 export interface UserRegistration {
   username: string;
   email: string;
   password: string;
+  phone_number: string;
+  full_name?: string;
+  avatar_url?: string;
 }
 
 export interface UserCredentials {
   username: string;
   password: string;
+}
+
+export interface VerificationCodeRequest {
+  recipient: string;
+  type: "phone" | "email";
+  purpose: "login" | "register";
+}
+
+export interface CodeLoginRequest {
+  recipient: string;
+  code: string;
+  type: "phone" | "email";
 }
 
 // 分类数据接口

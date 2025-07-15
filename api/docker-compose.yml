@@ -50,7 +50,8 @@ services:
     # 数据卷挂载，用于持久化 MySQL 数据和初始化脚本
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      # 挂载整个 migrations 目录，MySQL 会按文件名字母顺序执行所有 .sql 文件
+      - ./migrations:/docker-entrypoint-initdb.d
     # 连接到 sam-app-network 网络
     networks:
       - sam-app-network

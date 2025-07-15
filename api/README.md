@@ -23,14 +23,19 @@ api/
 │   ├── middleware/        # 中间件
 │   │   └── auth.ts        # JWT 认证中间件
 │   ├── utils/             # 工具函数
-│   │   └── connection.ts  # MySQL 连接池管理
+│   │   ├── auth.ts        # 认证工具函数
+│   │   ├── connection.ts  # MySQL 连接池管理
+│   │   └── notification.ts # 邮件/短信通知
 │   ├── users/             # 用户模块
 │   ├── products/          # 商品模块
 │   ├── categories/        # 分类模块
 │   └── home/              # 首页数据模块
+├── migrations/            # 数据库迁移文件
+│   ├── 000_init.sql      # 数据库初始化脚本
+│   ├── 001_add_auth_fields.sql # 认证字段迁移
+│   └── 002_add_default_admin.sql # 添加默认管理员用户
 ├── docker-compose.yml     # Docker 编排配置
 ├── Dockerfile            # API 容器镜像配置
-├── init.sql              # 数据库初始化脚本
 ├── package.json          # 项目依赖配置
 ├── tsconfig.json         # TypeScript 配置
 └── rolldown.config.ts    # 打包配置
@@ -80,9 +85,12 @@ pnpm start
 
 ### 用户模块 (`/users`)
 
-- `POST /users/register` - 用户注册
-- `POST /users/login` - 用户登录
-- `GET /users/` - 获取用户列表（需认证）
+- `POST /users/register` - 用户注册（必填：用户名、手机号、邮箱、密码）
+- `POST /users/login` - 用户名密码登录
+- `POST /users/send-verification-code` - 发送手机/邮箱验证码
+- `POST /users/login-with-code` - 手机号/邮箱验证码登录
+- `GET /users/profile` - 获取当前用户信息（需认证）
+- `GET /users/` - 获取用户列表（需管理员权限）
 
 ### 商品模块 (`/products`)
 
@@ -116,8 +124,16 @@ DB_NAME=sam_app
 AUTH_ENABLED=true
 JWT_SECRET=your-secret-key
 
+# 邮件配置（可选）
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+SMTP_FROM="山姆闪购超市" <noreply@sam-supermarket.com>
+
 # 服务器配置
 PORT=3100
+NODE_ENV=development
 ```
 
 ## 数据库架构
@@ -139,11 +155,40 @@ PORT=3100
 4. **product_to_category_map** - 商品分类映射表
    - 商品与分类的多对多关系
 
+5. **verification_logs** - 验证码日志表
+   - 记录验证码发送和使用情况
+
+6. **user_login_logs** - 用户登录日志表
+   - 记录用户登录历史
+
+### 数据库迁移
+
+迁移文件位于 `migrations/` 目录，按文件名顺序执行：
+
+- `000_init.sql` - 初始化数据库结构和基础数据
+- `001_add_auth_fields.sql` - 添加多种登录方式支持的字段
+- `002_add_default_admin.sql` - 添加默认管理员用户 (admin/admin)
+
+Docker 环境会自动执行所有迁移文件。手动执行迁移：
+```bash
+# 执行所有迁移
+for file in migrations/*.sql; do
+  mysql -h localhost -P 13306 -u root -p sam_app_db < "$file"
+done
+```
+
+**注意**：默认管理员账号为 `admin/admin`，请在首次登录后立即修改密码！
+
 ## 认证机制
 
 - 使用 JWT Bearer Token 认证
-- Token 有效期：1小时
+- Token 有效期：24小时
 - 认证头格式：`Authorization: Bearer <token>`
+- 支持多种登录方式：
+  - 用户名密码登录
+  - 手机号验证码登录
+  - 邮箱验证码登录
+  - 微信登录（预留接口）
 
 ## 开发指南
 
@@ -195,11 +240,12 @@ const result = await query('SELECT * FROM users WHERE id = ?', [userId]);
 
 ## 安全建议
 
-1. **密码加密**: 生产环境必须使用 bcrypt 等加密存储密码
+1. **密码加密**: 使用 bcrypt 加密存储密码（已实现）
 2. **环境变量**: 敏感信息使用环境变量配置
 3. **SQL 注入**: 已使用参数化查询防护
 4. **CORS**: 生产环境严格限制允许的域名
 5. **HTTPS**: 生产环境启用 HTTPS
+6. **验证码**: 实现了手机/邮箱验证码登录，防止暴力破解
 
 ## 许可证
 

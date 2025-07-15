@@ -19,6 +19,7 @@ import {
 } from "@heroui/react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
+import AuthModal from "@/components/AuthModal";
 
 const navigation = [
   { name: "首页", href: "/" },
@@ -29,22 +30,35 @@ const navigation = [
 
 const Navbare = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<"login" | "register">("login");
   const { isAuthenticated, user, logout } = useAuth();
   const { totalItems } = useCart();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
+    navigate("/");
+  };
+
+  const openLoginModal = () => {
+    setAuthModalMode("login");
+    setIsAuthModalOpen(true);
+  };
+
+  const openRegisterModal = () => {
+    setAuthModalMode("register");
+    setIsAuthModalOpen(true);
   };
 
   return (
-    <Navbar
-      isBordered
-      isMenuOpen={isMenuOpen}
-      onMenuOpenChange={setIsMenuOpen}
-      className="bg-background"
-    >
+    <>
+      <Navbar
+        isBordered
+        isMenuOpen={isMenuOpen}
+        onMenuOpenChange={setIsMenuOpen}
+        className="bg-background"
+      >
       {/* Logo */}
       <NavbarBrand>
         <Link to="/" className="font-bold text-inherit text-xl">
@@ -80,7 +94,7 @@ const Navbare = () => {
             <ShoppingCartIcon className="h-6 w-6" />
             {totalItems > 0 && (
               <Badge color="danger" className="absolute -top-1 -right-1">
-                totalItems
+                {totalItems}
               </Badge>
             )}
           </Button>
@@ -121,9 +135,22 @@ const Navbare = () => {
             </Dropdown>
           </NavbarItem>
         ) : (
-          <NavbarItem>
-            <Button as={Link} to="/login" color="primary" variant="flat">
+          <NavbarItem className="flex gap-2">
+            <Button 
+              color="primary" 
+              variant="flat"
+              size="sm"
+              onClick={openLoginModal}
+            >
               登录
+            </Button>
+            <Button 
+              color="primary" 
+              variant="solid"
+              size="sm"
+              onClick={openRegisterModal}
+            >
+              注册
             </Button>
           </NavbarItem>
         )}
@@ -149,7 +176,14 @@ const Navbare = () => {
           </NavbarMenuItem>
         ))}
       </NavbarMenu>
-    </Navbar>
+      </Navbar>
+      
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        mode={authModalMode}
+      />
+    </>
   );
 };
 
