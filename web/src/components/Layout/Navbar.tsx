@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ShoppingCartIcon } from "@heroicons/react/24/outline";
 import {
@@ -16,6 +16,7 @@ import {
   DropdownItem,
   Badge,
   Avatar,
+  addToast,
 } from "@heroui/react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
@@ -33,8 +34,15 @@ const Navbare = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<"login" | "register">("login");
   const { isAuthenticated, user, logout } = useAuth();
-  const { totalItems } = useCart();
+  const { totalItems, fetchCart } = useCart();
   const navigate = useNavigate();
+
+  // 当用户登录时获取购物车数据
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchCart();
+    }
+  }, [isAuthenticated, fetchCart]);
 
   const handleLogout = () => {
     logout();
@@ -85,14 +93,24 @@ const Navbare = () => {
         {/* Cart */}
         <NavbarItem>
           <Button
-            as={Link}
-            to="/cart"
             variant="light"
             isIconOnly
             className="relative"
+            onClick={() => {
+              if (isAuthenticated) {
+                navigate("/cart");
+              } else {
+                addToast({
+                  title: '请先登录',
+                  description: '登录后才能查看购物车',
+                  color: 'warning',
+                  timeout: 3000,
+                });
+              }
+            }}
           >
             <ShoppingCartIcon className="h-6 w-6" />
-            {totalItems > 0 && (
+            {isAuthenticated && totalItems > 0 && (
               <Badge color="danger" className="absolute -top-1 -right-1">
                 {totalItems}
               </Badge>

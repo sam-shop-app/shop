@@ -21,7 +21,7 @@ CREATE TABLE `products` (
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '行数据更新时间戳，在更新时会自动刷新',
 
   -- 设置 `id` 字段为主键
-  PRIMARY KEY (`id`),
+  PRIMARY KEY (`spu_id`),
 
   -- 为 `spu_id` 和 `store_id` 的组合创建唯一键，确保没有重复的商品-店铺记录。
   -- 这是实现 "INSERT ... ON DUPLICATE KEY UPDATE" 功能的基础。
@@ -40,10 +40,10 @@ DROP TABLE IF EXISTS `product_to_category_map`;
 CREATE TABLE `product_to_category_map` (
   `product_spu_id` VARCHAR(50) NOT NULL COMMENT '商品SPU ID，对应 products 表的 spu_id',
   `category_id` VARCHAR(50) NOT NULL COMMENT '分类ID，对应 product_categories 表的 id',
-  
+
   -- 创建复合主键，确保同一个商品和同一个分类的关联关系只有一条
   PRIMARY KEY (`product_spu_id`, `category_id`),
-  
+
   -- 添加索引以优化查询性能
   INDEX `idx_category_id` (`category_id`)
 
@@ -91,8 +91,8 @@ CREATE TABLE `product_categories` (
   `sort_order` INT DEFAULT 0 COMMENT '排序值，根据在数组中的位置生成',
   PRIMARY KEY (`id`),
   INDEX `idx_parent_id` (`parent_id`)
-) ENGINE=InnoDB 
-DEFAULT CHARSET=utf8mb4 
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci
 COMMENT='商品分类信息表';
 

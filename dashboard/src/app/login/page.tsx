@@ -11,7 +11,7 @@ import Image from "next/image";
 
 const loginSchema = z.object({
   username: z.string().min(1, "用户名是必填项"),
-  password: z.string().min(6, "密码必须至少包含 6 个字符"),
+  password: z.string().min(5, "密码必须至少包含 5 个字符"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -31,8 +31,8 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormValues) => {
     try {
-      const { token } = await api<any>('/users/login', {
-        method: 'POST',
+      const { token } = await api<any>("/users/login", {
+        method: "POST",
         body: data,
       });
       localStorage.setItem("token", token);
@@ -68,9 +68,7 @@ export default function LoginPage() {
               placeholder="请输入您的用户名"
               isInvalid={!!errors.username}
               errorMessage={errors.username?.message}
-              startContent={
-                <Mail className="w-4 h-4 text-gray-400" />
-              }
+              startContent={<Mail className="w-4 h-4 text-gray-400" />}
             />
             <Input
               {...register("password")}
@@ -78,9 +76,7 @@ export default function LoginPage() {
               placeholder="请输入您的密码"
               isInvalid={!!errors.password}
               errorMessage={errors.password?.message}
-              startContent={
-                <Lock className="w-4 h-4 text-gray-400" />
-              }
+              startContent={<Lock className="w-4 h-4 text-gray-400" />}
               endContent={
                 <button
                   className="focus:outline-none"
@@ -115,4 +111,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-} 
+}

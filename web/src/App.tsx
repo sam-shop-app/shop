@@ -1,6 +1,7 @@
 import { Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import Layout from "@/components/Layout";
+import { ProtectedRoute } from "@/components";
 
 // Lazy load pages
 const Home = lazy(() => import("@/pages/Home"));
@@ -26,12 +27,28 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="products/:id" element={<ProductDetail />} />
-          <Route path="cart" element={<Cart />} />
-          <Route path="checkout" element={<Checkout />} />
+          <Route path="cart" element={
+            <ProtectedRoute message="请先登录查看购物车">
+              <Cart />
+            </ProtectedRoute>
+          } />
+          <Route path="checkout" element={
+            <ProtectedRoute message="请先登录进行结算">
+              <Checkout />
+            </ProtectedRoute>
+          } />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="orders/:id" element={<OrderDetail />} />
+          <Route path="profile" element={
+            <ProtectedRoute message="请先登录查看个人资料">
+              <Profile />
+            </ProtectedRoute>
+          } />
+          <Route path="orders/:id" element={
+            <ProtectedRoute message="请先登录查看订单详情">
+              <OrderDetail />
+            </ProtectedRoute>
+          } />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

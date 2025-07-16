@@ -3,9 +3,10 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import db from "./utils/connection";
 import products from "./products";
-import users from "./users";
+import users, { registerUser } from "./users";
 import categories from "./categories";
 import home from "./home";
+import cart from "./cart";
 import { getConnection } from "./utils/connection";
 
 // 创建 Hono 应用实例
@@ -15,7 +16,11 @@ const app = new Hono();
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:3001", "http://localhost:3000", "http://localhost:3200"],
+    origin: [
+      "http://localhost:3001",
+      "http://localhost:3000",
+      "http://localhost:3200",
+    ],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
   }),
@@ -29,14 +34,20 @@ app.get("/", (c) => {
 app.get("/stats", async (c) => {
   const connection = await getConnection();
   try {
-    const productsCount: any = await db.query("SELECT COUNT(*) as count FROM products");
-    const usersCount: any = await db.query("SELECT COUNT(*) as count FROM users");
-    const categoriesCount: any = await db.query("SELECT COUNT(*) as count FROM product_categories");
+    const productsCount: any = await db.query(
+      "SELECT COUNT(*) as count FROM products",
+    );
+    const usersCount: any = await db.query(
+      "SELECT COUNT(*) as count FROM users",
+    );
+    const categoriesCount: any = await db.query(
+      "SELECT COUNT(*) as count FROM product_categories",
+    );
 
     return c.json({
       products: productsCount[0].count,
       users: usersCount[0].count,
-      categories: categoriesCount[0].count
+      categories: categoriesCount[0].count,
     });
   } catch (error) {
     console.error("Error fetching stats:", error);
@@ -48,6 +59,7 @@ app.route("/users", users);
 app.route("/products", products);
 app.route("/categories", categories);
 app.route("/home", home);
+app.route("/cart", cart);
 
 // 测试数据库连接端点
 app.get("/db-test", async (c) => {

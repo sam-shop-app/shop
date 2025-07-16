@@ -66,9 +66,9 @@ export const put = async <T>(url: string, data?: object): Promise<T> => {
 };
 
 // DELETE 请求
-export const del = async <T>(url: string, params?: object): Promise<T> => {
+export const del = async <T>(url: string, data?: object): Promise<T> => {
   try {
-    return await request.delete(url, { params });
+    return await request.delete(url, { data });
   } catch (error) {
     throw error;
   }

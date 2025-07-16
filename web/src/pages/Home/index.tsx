@@ -53,7 +53,7 @@ const sortOptions = [
 ];
 
 const HomePage = () => {
-  const { addItem } = useCart();
+  const { addItem, loading: cartLoading } = useCart();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // 状态管理
@@ -92,9 +92,7 @@ const HomePage = () => {
     const fetchCategories = async () => {
       try {
         const res = await request.get("/categories/tree");
-        if (res.data.success) {
-          setCategories(res.data.data);
-        }
+        setCategories(res.data ?? []);
       } catch (error) {
         console.error("Failed to fetch categories", error);
       }
@@ -135,7 +133,7 @@ const HomePage = () => {
         const queryString = new URLSearchParams(params).toString();
         const res = await request.get(`/products?${queryString}`);
 
-        const newProducts = res.data.data || [];
+        const newProducts = res.data || [];
         const total = res.data.total || 0;
 
         if (pageNum === 1 || isNewSearch) {
@@ -442,7 +440,6 @@ const HomePage = () => {
                   key={`${product.spu_id}-${index}`}
                   ref={isLast ? lastProductElementRef : null}
                   className="border-none group"
-                  isPressable
                 >
                   <CardBody className="p-0 overflow-hidden">
                     <Link to={`/products/${product.spu_id}`}>
@@ -474,16 +471,12 @@ const HomePage = () => {
                           variant="light"
                           isDisabled={
                             !product.is_available ||
-                            product.stock_quantity === 0
+                            product.stock_quantity === 0 ||
+                            cartLoading
                           }
+                          isLoading={cartLoading}
                           onPress={() => {
-                            addItem({
-                              id: product.spu_id,
-                              name: product.title,
-                              price: parseFloat(product.price),
-                              image: product.image_url,
-                              stock: product.stock_quantity,
-                            });
+                            addItem(product.spu_id, 1);
                           }}
                         >
                           <span>加入购物车</span>

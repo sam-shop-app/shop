@@ -1,4 +1,5 @@
 import mysql from "mysql2/promise";
+import { registerDefaultUser } from "../users/index";
 
 /**
  * MySQL 数据库连接模块
@@ -16,6 +17,16 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   charset: "utf8mb4_unicode_ci",
+});
+
+// 注册默认用户
+pool.on("connection", async (connection) => {
+  console.log("ok");
+  try {
+    await registerDefaultUser();
+  } catch (error) {
+    console.error("注册默认用户时出错:", error);
+  }
 });
 
 /**
